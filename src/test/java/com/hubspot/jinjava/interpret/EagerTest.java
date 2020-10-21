@@ -435,6 +435,9 @@ public class EagerTest {
   }
 
   @Test
+  public void itHandlesEagerPrintAndDo() {}
+
+  @Test
   public void itEagerlyDefersImport() {}
 
   @Test

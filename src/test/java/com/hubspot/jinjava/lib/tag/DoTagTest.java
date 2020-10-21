@@ -12,9 +12,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class DoTagTest {
-  private Context context;
-  private JinjavaInterpreter interpreter;
-  private Jinjava jinjava;
+  public Context context;
+  public JinjavaInterpreter interpreter;
+  public Jinjava jinjava;
 
   @Before
   public void setup() {

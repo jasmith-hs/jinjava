@@ -3,7 +3,6 @@ package com.hubspot.jinjava.lib.tag.eager;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
 import com.hubspot.jinjava.lib.tag.SetTag;
-import com.hubspot.jinjava.tree.TagNode;
 import com.hubspot.jinjava.tree.parse.TagToken;
 import com.hubspot.jinjava.util.ChunkResolver;
 import java.util.Arrays;
@@ -11,9 +10,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 
-public class EagerSetTag extends EagerTagDecorator<SetTag> {
+public class EagerSetTag extends EagerStateChangingTag<SetTag> {
 
   public EagerSetTag() {
     super(new SetTag());
@@ -21,16 +19,6 @@ public class EagerSetTag extends EagerTagDecorator<SetTag> {
 
   public EagerSetTag(SetTag setTag) {
     super(setTag);
-  }
-
-  @Override
-  public String interpret(TagNode tagNode, JinjavaInterpreter interpreter) {
-    if (interpreter.getContext().isEagerMode()) {
-      // Preserve set tags when eagerly executing nodes.
-      return eagerInterpret(tagNode, interpreter);
-    } else {
-      return super.interpret(tagNode, interpreter);
-    }
   }
 
   @Override

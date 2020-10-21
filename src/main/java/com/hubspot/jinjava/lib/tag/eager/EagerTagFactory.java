@@ -3,13 +3,16 @@ package com.hubspot.jinjava.lib.tag.eager;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 import com.hubspot.jinjava.lib.tag.Tag;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 
 public class EagerTagFactory {
   private Set<Class<? extends Tag>> skippedTagClasses;
 
-  public EagerTagFactory() {}
+  public EagerTagFactory() {
+    this.skippedTagClasses = Collections.emptySet();
+  }
 
   public EagerTagFactory(Class<? extends Tag>... skippedTagClass) {
     this.skippedTagClasses = Sets.newHashSet(skippedTagClass);
