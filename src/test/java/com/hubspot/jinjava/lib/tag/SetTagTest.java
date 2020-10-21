@@ -22,11 +22,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
-@RunWith(MockitoJUnitRunner.class)
 public class SetTagTest {
   public Tag tag;
 

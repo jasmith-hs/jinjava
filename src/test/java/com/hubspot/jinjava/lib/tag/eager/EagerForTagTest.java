@@ -19,8 +19,8 @@ public class EagerForTagTest extends ForTagTest {
   @Before
   public void setup() {
     super.setup();
-    context.registerTag(new EagerForTag());
     tag = new EagerForTag();
+    context.registerTag(tag);
     context.put("deferred", DeferredValue.instance());
     expectedNodeInterpreter =
       new ExpectedNodeInterpreter(interpreter, tag, "tags/eager/fortag");

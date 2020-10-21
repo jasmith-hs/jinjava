@@ -3,7 +3,6 @@ package com.hubspot.jinjava.lib.tag.eager;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.hubspot.jinjava.ExpectedNodeInterpreter;
-import com.hubspot.jinjava.Jinjava;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.lib.tag.SetTagTest;
@@ -11,6 +10,7 @@ import com.hubspot.jinjava.tree.parse.TagToken;
 import java.util.Optional;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class EagerSetTagTest extends SetTagTest {
@@ -19,10 +19,11 @@ public class EagerSetTagTest extends SetTagTest {
   @Before
   public void setup() {
     super.setup();
-    context.registerTag(new EagerForTag());
+    tag = new EagerSetTag();
+    context.registerTag(tag);
     context.put("deferred", DeferredValue.instance());
     expectedNodeInterpreter =
-      new ExpectedNodeInterpreter(interpreter, new EagerSetTag(), "tags/eager/settag");
+      new ExpectedNodeInterpreter(interpreter, tag, "tags/eager/settag");
     JinjavaInterpreter.pushCurrent(interpreter);
   }
 
@@ -59,7 +60,7 @@ public class EagerSetTagTest extends SetTagTest {
       .findAny();
     assertThat(maybeEagerTagToken).isPresent();
     assertThat(maybeEagerTagToken.get().getDeferredHelpers())
-      .containsExactlyInAnyOrder("foo", "deferred");
+      .containsExactlyInAnyOrder("foo", "deferred", "range");
   }
 
   @Test
@@ -75,6 +76,20 @@ public class EagerSetTagTest extends SetTagTest {
       .findAny();
     assertThat(maybeEagerTagToken).isPresent();
     assertThat(maybeEagerTagToken.get().getDeferredHelpers())
-      .containsExactlyInAnyOrder("foo", "foobar", "deferred");
+      .containsExactlyInAnyOrder("foo", "foobar", "deferred", "range");
+  }
+
+  @Test
+  @Override
+  @Ignore
+  public void itThrowsAndDefersVarWhenValContainsDeferred() {
+    // Deferred values are handled differently. Test does not apply.
+  }
+
+  @Test
+  @Override
+  @Ignore
+  public void itThrowsAndDefersMultiVarWhenValContainsDeferred() {
+    // Deferred values are handled differently. Test does not apply.
   }
 }

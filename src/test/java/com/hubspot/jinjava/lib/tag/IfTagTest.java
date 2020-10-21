@@ -14,25 +14,21 @@ import java.nio.charset.StandardCharsets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.runners.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public class IfTagTest {
-  JinjavaInterpreter interpreter;
+  public JinjavaInterpreter interpreter;
 
-  @InjectMocks
-  IfTag tag;
+  public Tag tag;
 
   Jinjava jinjava;
-  private Context context;
+  public Context context;
 
   @Before
   public void setup() {
     jinjava = new Jinjava();
-    interpreter = jinjava.newInterpreter();
+    interpreter = new JinjavaInterpreter(jinjava.newInterpreter());
     context = interpreter.getContext();
+    tag = new IfTag();
     JinjavaInterpreter.pushCurrent(interpreter);
   }
 
