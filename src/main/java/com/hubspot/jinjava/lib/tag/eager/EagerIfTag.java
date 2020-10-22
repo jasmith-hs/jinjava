@@ -41,7 +41,8 @@ public class EagerIfTag extends EagerTagDecorator<IfTag> {
         interpreter
       )
     );
-    result.append(tagNode.reconstructEnd());
+    tagNode.getMaster().setRightTrimAfterEnd(false);
+    result.append(reconstructEnd(tagNode));
 
     return result.toString();
   }

@@ -460,6 +460,12 @@ public class EagerTest {
   }
 
   @Test
+  public void itSetsMultipleVarsDeferredInChildSecondPass() {
+    localContext.put("deferred", true);
+    assertExpectedOutput("sets-multiple-vars-deferred-in-child.expected");
+  }
+
+  @Test
   public void itHandlesEagerPrintAndDo() {}
 
   @Test

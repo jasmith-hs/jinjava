@@ -47,7 +47,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     );
 
     if (StringUtils.isNotBlank(tagNode.getEndName())) {
-      result.append(tagNode.reconstructEnd());
+      result.append(reconstructEnd(tagNode));
     }
 
     return result.toString();
@@ -154,11 +154,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     ) {
       throw new DisabledException("set tag disabled");
     }
-    StringJoiner result = new StringJoiner(" ");
-    result.add(
-      interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag()
-    );
-    result.add(SetTag.TAG_NAME);
+
     StringJoiner vars = new StringJoiner(", ");
     StringJoiner values = new StringJoiner(", ");
     for (Entry<String, Object> entry : deferredValuesToSet.entrySet()) {
@@ -169,12 +165,14 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
         throw new DeferredValueException(entry.getKey());
       }
     }
-    result.add(vars.toString());
-    result.add("=");
-    result.add(values.toString());
-    result.add(
-      interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag()
-    );
+    StringJoiner result = new StringJoiner(" ");
+    result
+      .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag())
+      .add(SetTag.TAG_NAME)
+      .add(vars.toString())
+      .add("=")
+      .add(values.toString())
+      .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag());
     return result.toString();
   }
 
@@ -274,5 +272,14 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
   @Override
   public boolean isRenderedInValidationMode() {
     return tag.isRenderedInValidationMode();
+  }
+
+  public String reconstructEnd(TagNode tagNode) {
+    return String.format(
+      "%s %s %s",
+      tagNode.getSymbols().getExpressionStartWithTag(),
+      tagNode.getEndName(),
+      tagNode.getSymbols().getExpressionEndWithTag()
+    );
   }
 }

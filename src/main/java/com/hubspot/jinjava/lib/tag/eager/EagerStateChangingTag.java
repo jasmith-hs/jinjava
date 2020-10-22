@@ -37,7 +37,7 @@ public class EagerStateChangingTag<T extends Tag> extends EagerTagDecorator<T> {
     }
 
     if (StringUtils.isNotBlank(tagNode.getEndName())) {
-      result.append(tagNode.reconstructEnd());
+      result.append(reconstructEnd(tagNode));
     }
 
     return result.toString();
