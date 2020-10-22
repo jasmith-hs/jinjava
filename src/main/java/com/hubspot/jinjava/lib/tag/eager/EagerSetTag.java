@@ -32,26 +32,24 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
         tagToken.getHelpers()
       );
     }
-    StringJoiner joiner = new StringJoiner(" ");
-    joiner
-      .add(tagToken.getSymbols().getExpressionStartWithTag())
-      .add(tagToken.getTagName());
 
     int eqPos = tagToken.getHelpers().indexOf('=');
     String var = tagToken.getHelpers().substring(0, eqPos).trim();
 
-    joiner.add(var);
-
-    joiner.add("=");
-
     String expr = tagToken.getHelpers().substring(eqPos + 1);
     ChunkResolver chunkResolver = new ChunkResolver(expr, tagToken, interpreter)
     .useMiniChunks(true);
-    String resolvedExpression = executeInChildContext(
+    EagerStringResult resolvedExpression = executeInChildContext(
       eagerInterpreter -> chunkResolver.resolveChunks(),
       interpreter
     );
-    joiner.add(resolvedExpression);
+    StringJoiner joiner = new StringJoiner(" ");
+    joiner
+      .add(tagToken.getSymbols().getExpressionStartWithTag())
+      .add(tagToken.getTagName())
+      .add(var)
+      .add("=")
+      .add(resolvedExpression.getResult());
     Set<String> deferredVariables = new HashSet<>(chunkResolver.getDeferredVariables());
     String[] varTokens = var.split(",");
     if (!deferredVariables.isEmpty()) {
@@ -60,8 +58,10 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       );
     } else {
       try {
-        getTag().executeSet(tagToken, interpreter, varTokens, resolvedExpression);
-        return "";
+        getTag()
+          .executeSet(tagToken, interpreter, varTokens, resolvedExpression.getResult());
+        // Possible set tag in front of this one.
+        return resolvedExpression.getPrefixToPreserveState() + "";
       } catch (DeferredValueException e) {
         deferredVariables.addAll(
           Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
@@ -74,6 +74,7 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       .handleEagerToken(new EagerToken(tagToken, deferredVariables));
     joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
 
-    return joiner.toString();
+    // Possible set tag in front of this one.
+    return resolvedExpression.getPrefixToPreserveState() + joiner.toString();
   }
 }

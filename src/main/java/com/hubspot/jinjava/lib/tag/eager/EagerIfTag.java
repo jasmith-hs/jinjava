@@ -38,7 +38,8 @@ public class EagerIfTag extends EagerTagDecorator<IfTag> {
       executeInChildContext(
         eagerInterpreter -> getEagerImage(tagNode.getMaster(), eagerInterpreter),
         eagerInterpreter -> renderChildren(tagNode, eagerInterpreter),
-        interpreter
+        interpreter,
+        false
       )
     );
     tagNode.getMaster().setRightTrimAfterEnd(false);

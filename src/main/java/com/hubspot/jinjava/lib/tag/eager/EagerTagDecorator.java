@@ -40,10 +40,12 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
   public String eagerInterpret(TagNode tagNode, JinjavaInterpreter interpreter) {
     StringBuilder result = new StringBuilder(
       executeInChildContext(
-        eagerInterpreter -> getEagerImage(tagNode.getMaster(), eagerInterpreter),
-        eagerInterpreter -> renderChildren(tagNode, eagerInterpreter),
-        interpreter
-      )
+          eagerInterpreter -> getEagerImage(tagNode.getMaster(), eagerInterpreter),
+          eagerInterpreter -> renderChildren(tagNode, eagerInterpreter),
+          interpreter,
+          false
+        )
+        .toString()
     );
 
     if (StringUtils.isNotBlank(tagNode.getEndName())) {
@@ -72,16 +74,11 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
    * @return The combined string results of <code>declareEnabledFunction</code> and
    *   <code>declareDisabledFunction</code>
    */
-  public String executeInChildContext(
+  public EagerStringResult executeInChildContext(
     Function<JinjavaInterpreter, String> declareDisabledFunction,
     JinjavaInterpreter interpreter
   ) {
-    StringBuilder result = new StringBuilder();
-    try (InterpreterScopeClosable c = interpreter.enterScope()) {
-      interpreter.getContext().setEagerMode(true);
-      result.append(declareDisabledFunction.apply(interpreter));
-    }
-    return result.toString();
+    return executeInChildContext(declareDisabledFunction, e -> "", interpreter, true);
   }
 
   /**
@@ -97,13 +94,20 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
    * @param declareEnabledFunction Function to run allowing declaration of variables.
    * @param declareDisabledFunction Function to run restricting declaration of variables.
    * @param interpreter JinjavaInterpreter to create a child from.
-   * @return The combined string results of <code>declareEnabledFunction</code> and
-   *   <code>declareDisabledFunction</code>. Possibly preceded by a <code>set</code> tag.
+   * @param takeNewValue If a value is updated (not replaced) either take the new value or
+   *                     take the previous value and put it into the
+   *                     <code>EagerStringResult.prefixToPreserveState</code>.
+   * @return An <code>EagerStringResult</code> where:
+   *  <code>result</code> is the combined string results of
+   *    <code>declareEnabledFunction</code> and <code>declareDisabledFunction</code>.
+   *  <code>prefixToPreserveState</code> is either blank or a <code>set</code> tag
+   *    that preserves the state within the output for a second rendering pass.
    */
-  public String executeInChildContext(
+  public EagerStringResult executeInChildContext(
     Function<JinjavaInterpreter, String> declareEnabledFunction,
     Function<JinjavaInterpreter, String> declareDisabledFunction,
-    JinjavaInterpreter interpreter
+    JinjavaInterpreter interpreter,
+    boolean takeNewValue
   ) {
     StringBuilder result = new StringBuilder();
     Map<String, Integer> initiallyResolvedHashes = new HashMap<>();
@@ -151,6 +155,9 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
                   ((DeferredValue) e.getValue()).getOriginalValue()
                 );
               }
+              if (takeNewValue) {
+                return ChunkResolver.getValueAsJinjavaString(e.getValue());
+              }
               if (initiallyResolvedAsStrings.containsKey(e.getKey())) {
                 return initiallyResolvedAsStrings.get(e.getKey());
               }
@@ -163,17 +170,22 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
         )
       );
     if (deferredValuesToSet.size() > 0) {
-      return (
-        buildSetTagForDeferredInChildContext(deferredValuesToSet, interpreter) +
-        result.toString()
+      return new EagerStringResult(
+        result.toString(),
+        buildSetTagForDeferredInChildContext(
+          deferredValuesToSet,
+          interpreter,
+          takeNewValue
+        )
       );
     }
-    return result.toString();
+    return new EagerStringResult(result.toString());
   }
 
   private String buildSetTagForDeferredInChildContext(
     Map<String, String> deferredValuesToSet,
-    JinjavaInterpreter interpreter
+    JinjavaInterpreter interpreter,
+    boolean takeNewValue
   ) {
     if (
       interpreter.getConfig().getDisabled().containsKey(Library.TAG) &&
@@ -211,7 +223,8 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
             interpreter.getPosition(),
             interpreter.getConfig().getTokenScannerSymbols()
           ),
-          deferredValuesToSet.keySet()
+          // Don't defer if we're sticking with the new value
+          takeNewValue ? Collections.emptySet() : deferredValuesToSet.keySet()
         )
       );
     return image;
