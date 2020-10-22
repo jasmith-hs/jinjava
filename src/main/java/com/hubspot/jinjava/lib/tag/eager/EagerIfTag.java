@@ -34,32 +34,34 @@ public class EagerIfTag extends EagerTagDecorator<IfTag> {
       interpreter.getConfig().getMaxOutputSize()
     );
 
-    JinjavaInterpreter eagerInterpreter = interpreter
-      .getConfig()
-      .getInterpreterFactory()
-      .newInstance(interpreter);
-    JinjavaInterpreter.pushCurrent(eagerInterpreter);
-    try {
-      result.append(getEagerImage(tagNode.getMaster(), eagerInterpreter));
+    result.append(
+      executeInChildContext(
+        eagerInterpreter -> getEagerImage(tagNode.getMaster(), eagerInterpreter),
+        eagerInterpreter -> renderChildren(tagNode, eagerInterpreter),
+        interpreter
+      )
+    );
+    result.append(tagNode.reconstructEnd());
 
-      for (Node child : tagNode.getChildren()) {
-        if (TagNode.class.isAssignableFrom(child.getClass())) {
-          TagNode tag = (TagNode) child;
-          if (
-            tag.getName().equals(ElseIfTag.TAG_NAME) ||
-            tag.getName().equals(ElseTag.TAG_NAME)
-          ) {
-            result.append(getEagerImage(tag.getMaster(), eagerInterpreter));
-            continue;
-          }
+    return result.toString();
+  }
+
+  @Override
+  public String renderChildren(TagNode tagNode, JinjavaInterpreter eagerInterpreter) {
+    StringBuilder sb = new StringBuilder();
+    for (Node child : tagNode.getChildren()) {
+      if (TagNode.class.isAssignableFrom(child.getClass())) {
+        TagNode tag = (TagNode) child;
+        if (
+          tag.getName().equals(ElseIfTag.TAG_NAME) ||
+          tag.getName().equals(ElseTag.TAG_NAME)
+        ) {
+          sb.append(getEagerImage(tag.getMaster(), eagerInterpreter));
+          continue;
         }
-        result.append(renderChild(child, eagerInterpreter));
       }
-      result.append(tagNode.reconstructEnd());
-
-      return result.toString();
-    } finally {
-      JinjavaInterpreter.popCurrent();
+      sb.append(renderChild(child, eagerInterpreter));
     }
+    return sb.toString();
   }
 }

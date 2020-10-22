@@ -3,6 +3,7 @@ package com.hubspot.jinjava.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.UnknownTokenException;
@@ -19,6 +20,38 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class ChunkResolver {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final Set<String> RESERVED_KEYWORDS = ImmutableSet.of(
+    "and",
+    "block",
+    "cycle",
+    "elif",
+    "else",
+    "endblock",
+    "endfilter",
+    "endfor",
+    "endif",
+    "endmacro",
+    "endraw",
+    "endtrans",
+    "extends",
+    "filter",
+    "for",
+    "if",
+    "in",
+    "include",
+    "is",
+    "macro",
+    "not",
+    "or",
+    "pluralize",
+    "print",
+    "raw",
+    "recursive",
+    "set",
+    "trans",
+    "call",
+    "endcall"
+  );
 
   // ( -> )
   // { -> }
@@ -159,7 +192,7 @@ public class ChunkResolver {
     }
     try {
       String resolvedToken;
-      if (WhitespaceUtils.isQuoted(token)) {
+      if (WhitespaceUtils.isQuoted(token) || RESERVED_KEYWORDS.contains(token)) {
         resolvedToken = token;
       } else {
         Object val = interpreter.retraceVariable(
@@ -195,6 +228,8 @@ public class ChunkResolver {
   private String resolveChunk(String chunk) {
     if (StringUtils.isBlank(chunk)) {
       return "";
+    } else if (RESERVED_KEYWORDS.contains(chunk)) {
+      return chunk;
     }
     try {
       String resolvedChunk;
@@ -254,6 +289,9 @@ public class ChunkResolver {
       .filter(
         w -> {
           try {
+            if (RESERVED_KEYWORDS.contains(w)) {
+              return false;
+            }
             // don't defer numbers, values such as true/false, etc.
             return interpreter.resolveELExpression(w, tagToken.getLineNumber()) == null;
           } catch (DeferredValueException e) {
