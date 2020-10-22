@@ -563,7 +563,7 @@ public class Context extends ScopeMap<String, Object> {
 
   @Override
   public Object put(String key, Object value) {
-    if (!isEagerMode() || value instanceof DeferredValue) {
+    if (!eagerMode || value instanceof DeferredValue || !parent.containsKey(key)) {
       return super.put(key, value);
     } else {
       throw new DeferredValueException(key);
@@ -572,7 +572,6 @@ public class Context extends ScopeMap<String, Object> {
 
   @Override
   public Object get(Object key) {
-    Object result = super.get(key);
-    return result;
+    return super.get(key);
   }
 }

@@ -10,8 +10,10 @@ import com.hubspot.jinjava.Jinjava;
 import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.lib.tag.EndTag;
 import com.hubspot.jinjava.lib.tag.SetTag;
+import com.hubspot.jinjava.lib.tag.eager.EagerDoTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerForTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerIfTag;
+import com.hubspot.jinjava.lib.tag.eager.EagerSetTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
 import com.hubspot.jinjava.random.RandomNumberGeneratorStrategy;
 import com.hubspot.jinjava.tree.Node;
@@ -60,6 +62,9 @@ public class EagerTest {
 
     localContext.registerTag(new EagerIfTag());
     localContext.registerTag(new EagerForTag());
+    localContext.registerTag(new EagerSetTag());
+    localContext.registerTag(new EagerDoTag());
+
     localContext.put("deferred", DeferredValue.instance());
     localContext.put("resolved", "resolvedValue");
     localContext.put("dict", ImmutableSet.of("a", "b", "c"));
@@ -265,7 +270,7 @@ public class EagerTest {
     );
     Object padding = localContext.get("padding");
     assertThat(padding).isInstanceOf(DeferredValue.class);
-    assertThat(((DeferredValue) padding).getOriginalValue()).isEqualTo(10);
+    assertThat(((DeferredValue) padding).getOriginalValue()).isEqualTo(10L);
 
     localContext.put("padding", ((DeferredValue) padding).getOriginalValue());
     localContext.put("added_padding", 10);
@@ -432,6 +437,21 @@ public class EagerTest {
           .collect(Collectors.toSet())
       )
       .containsExactlyInAnyOrder("item", "deferred");
+  }
+
+  @Test
+  public void itDefersOnImmutableMode() {
+    assertExpectedOutput("defers-on-immutable-mode");
+  }
+
+  @Test
+  public void itDoesntAffectParentFromEagerIf() {
+    assertExpectedOutput("doesnt-affect-parent-from-eager-if");
+  }
+
+  @Test
+  public void itAllowsEagerChildScopedVars() {
+    assertExpectedOutput("allows-eager-child-scoped-vars");
   }
 
   @Test
