@@ -237,17 +237,24 @@ public class ChunkResolver {
       if (val == null) {
         resolvedChunk = chunk;
       } else {
-        if (val instanceof String) {
-          resolvedChunk = String.format("'%s'", val);
-        } else {
-          return OBJECT_MAPPER.writeValueAsString(val);
-        }
+        resolvedChunk = getValueAsJinjavaString(val);
       }
       return resolvedChunk.trim();
     } catch (Exception e) {
       findDeferredVariables(chunk);
       return chunk.trim();
     }
+  }
+
+  public static String getValueAsJinjavaString(Object val)
+    throws JsonProcessingException {
+    String resolvedChunk;
+    if (val instanceof String) {
+      resolvedChunk = String.format("'%s'", val);
+    } else {
+      resolvedChunk = OBJECT_MAPPER.writeValueAsString(val);
+    }
+    return resolvedChunk;
   }
 
   // Find any variables, functions, etc in this chunk and mark as deferred.

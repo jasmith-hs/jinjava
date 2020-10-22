@@ -30,7 +30,6 @@ public class EagerStateChangingTag<T extends Tag> extends EagerTagDecorator<T> {
     if (!tagNode.getChildren().isEmpty()) {
       result.append(
         executeInChildContext(
-          eagerInterpreter -> "",
           eagerInterpreter -> renderChildren(tagNode, eagerInterpreter),
           interpreter
         )

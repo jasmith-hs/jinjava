@@ -450,8 +450,13 @@ public class EagerTest {
   }
 
   @Test
-  public void itAllowsEagerChildScopedVars() {
-    assertExpectedOutput("allows-eager-child-scoped-vars");
+  public void itDefersEagerChildScopedVars() {
+    assertExpectedOutput("defers-eager-child-scoped-vars");
+  }
+
+  @Test
+  public void itSetsMultipleVarsDeferredInChild() {
+    assertExpectedOutput("sets-multiple-vars-deferred-in-child");
   }
 
   @Test
