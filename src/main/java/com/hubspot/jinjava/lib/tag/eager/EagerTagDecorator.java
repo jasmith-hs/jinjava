@@ -18,9 +18,9 @@ import com.hubspot.jinjava.tree.parse.TextToken;
 import com.hubspot.jinjava.tree.parse.Token;
 import com.hubspot.jinjava.util.ChunkResolver;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -106,33 +106,60 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     JinjavaInterpreter interpreter
   ) {
     StringBuilder result = new StringBuilder();
-    Set<String> initiallyResolved = interpreter
+    Map<String, Integer> initiallyResolvedHashes = new HashMap<>();
+    Map<String, String> initiallyResolvedAsStrings = new HashMap<>();
+    interpreter
       .getContext()
       .entrySet()
       .stream()
       .filter(e -> !(e.getValue() instanceof DeferredValue))
-      .map(Entry::getKey)
-      .collect(Collectors.toSet());
+      .forEach(
+        entry -> {
+          initiallyResolvedHashes.put(entry.getKey(), entry.getValue().hashCode());
+          try {
+            initiallyResolvedAsStrings.put(
+              entry.getKey(),
+              ChunkResolver.getValueAsJinjavaString(entry.getValue())
+            );
+          } catch (JsonProcessingException jsonProcessingException) {
+            // do nothing
+          }
+        }
+      );
+
     try (InterpreterScopeClosable c = interpreter.enterScope()) {
       interpreter.getContext().setEagerMode(false);
       result.append(declareEnabledFunction.apply(interpreter));
       interpreter.getContext().setEagerMode(true);
       result.append(declareDisabledFunction.apply(interpreter));
     }
-    Map<String, Object> deferredValuesToSet = interpreter
+    Map<String, String> deferredValuesToSet = interpreter
       .getContext()
       .entrySet()
       .stream()
-      .filter(e -> initiallyResolved.contains(e.getKey()))
+      .filter(e -> initiallyResolvedHashes.containsKey(e.getKey()))
       .filter(
-        e ->
-          e.getValue() instanceof DeferredValue &&
-          ((DeferredValue) e.getValue()).getOriginalValue() != null
+        e -> !initiallyResolvedHashes.get(e.getKey()).equals(e.getValue().hashCode())
       )
       .collect(
         Collectors.toMap(
           Entry::getKey,
-          e -> ((DeferredValue) e.getValue()).getOriginalValue()
+          e -> {
+            try {
+              if (e instanceof DeferredValue) {
+                return ChunkResolver.getValueAsJinjavaString(
+                  ((DeferredValue) e.getValue()).getOriginalValue()
+                );
+              }
+              if (initiallyResolvedAsStrings.containsKey(e.getKey())) {
+                return initiallyResolvedAsStrings.get(e.getKey());
+              }
+            } catch (JsonProcessingException ignored) {
+              // pass through
+            }
+            // Previous value could not be mapped to a string
+            throw new DeferredValueException(e.getKey());
+          }
         )
       );
     if (deferredValuesToSet.size() > 0) {
@@ -145,7 +172,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
   }
 
   private String buildSetTagForDeferredInChildContext(
-    Map<String, Object> deferredValuesToSet,
+    Map<String, String> deferredValuesToSet,
     JinjavaInterpreter interpreter
   ) {
     if (
@@ -157,14 +184,13 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
 
     StringJoiner vars = new StringJoiner(", ");
     StringJoiner values = new StringJoiner(", ");
-    for (Entry<String, Object> entry : deferredValuesToSet.entrySet()) {
-      try {
-        vars.add(entry.getKey());
-        values.add(ChunkResolver.getValueAsJinjavaString(entry.getValue()));
-      } catch (JsonProcessingException e) {
-        throw new DeferredValueException(entry.getKey());
+    deferredValuesToSet.forEach(
+      (key, value) -> {
+        // This ensures they are properly aligned to each other.
+        vars.add(key);
+        values.add(value);
       }
-    }
+    );
     StringJoiner result = new StringJoiner(" ");
     result
       .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag())
@@ -173,7 +199,22 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       .add("=")
       .add(values.toString())
       .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag());
-    return result.toString();
+    String image = result.toString();
+    interpreter
+      .getContext()
+      .handleEagerToken(
+        new EagerToken(
+          new TagToken(
+            image,
+            // TODO this line number won't be accurate, currently doesn't matter.
+            interpreter.getLineNumber(),
+            interpreter.getPosition(),
+            interpreter.getConfig().getTokenScannerSymbols()
+          ),
+          deferredValuesToSet.keySet()
+        )
+      );
+    return image;
   }
 
   public final Object renderChild(Node child, JinjavaInterpreter interpreter) {

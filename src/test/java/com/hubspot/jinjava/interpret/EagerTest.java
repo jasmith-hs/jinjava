@@ -16,8 +16,6 @@ import com.hubspot.jinjava.lib.tag.eager.EagerIfTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerSetTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
 import com.hubspot.jinjava.random.RandomNumberGeneratorStrategy;
-import com.hubspot.jinjava.tree.Node;
-import com.hubspot.jinjava.tree.TreeParser;
 import com.hubspot.jinjava.util.DeferredValueUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -463,6 +461,11 @@ public class EagerTest {
   public void itSetsMultipleVarsDeferredInChildSecondPass() {
     localContext.put("deferred", true);
     assertExpectedOutput("sets-multiple-vars-deferred-in-child.expected");
+  }
+
+  @Test
+  public void itDoesntDoubleAppendInDeferredTag() {
+    assertExpectedOutput("doesnt-double-append-in-deferred-tag");
   }
 
   @Test

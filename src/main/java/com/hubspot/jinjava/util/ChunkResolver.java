@@ -241,7 +241,7 @@ public class ChunkResolver {
       }
       return resolvedChunk.trim();
     } catch (Exception e) {
-      findDeferredVariables(chunk);
+      deferredVariables.addAll(findDeferredVariables(chunk));
       return chunk.trim();
     }
   }
