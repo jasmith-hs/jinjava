@@ -459,6 +459,17 @@ public class EagerTest {
   }
 
   @Test
+  public void itHandlesLoopVarAgainstDeferredInLoop() {
+    assertExpectedOutput("handles-loop-var-against-deferred-in-loop");
+  }
+
+  @Test
+  public void itHandlesLoopVarAgainstDeferredInLoopSecondPass() {
+    localContext.put("deferred", "resolved");
+    assertExpectedOutput("handles-loop-var-against-deferred-in-loop.expected");
+  }
+
+  @Test
   public void itHandlesEagerPrintAndDo() {}
 
   @Test
