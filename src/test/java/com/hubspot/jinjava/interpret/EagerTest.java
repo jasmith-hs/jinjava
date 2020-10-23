@@ -3,7 +3,6 @@ package com.hubspot.jinjava.interpret;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
@@ -17,7 +16,6 @@ import com.hubspot.jinjava.lib.tag.eager.EagerIfTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerPrintTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerSetTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
-import com.hubspot.jinjava.objects.collections.PyList;
 import com.hubspot.jinjava.random.RandomNumberGeneratorStrategy;
 import com.hubspot.jinjava.util.DeferredValueUtils;
 import java.io.IOException;
@@ -435,7 +433,7 @@ public class EagerTest {
         localContext
           .getEagerTokens()
           .stream()
-          .flatMap(eagerToken -> eagerToken.getDeferredHelpers().stream())
+          .flatMap(eagerToken -> eagerToken.getDeferredWords().stream())
           .collect(Collectors.toSet())
       )
       .containsExactlyInAnyOrder("item", "deferred");

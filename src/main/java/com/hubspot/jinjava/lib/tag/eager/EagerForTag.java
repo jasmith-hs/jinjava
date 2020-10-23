@@ -53,18 +53,16 @@ public class EagerForTag extends EagerTagDecorator<ForTag> {
       .add(tagToken.getSymbols().getExpressionStartWithTag())
       .add(tagToken.getTagName());
     joiner.add(String.join(", ", loopVars));
-    Set<String> deferredVariables = new HashSet<>(loopVars);
+    Set<String> deferredWords = new HashSet<>(loopVars);
     joiner.add("in");
 
     String loopExpression = getTag().getLoopExpression(helperTokens, loopVars);
     ChunkResolver chunkResolver = new ChunkResolver(loopExpression, tagToken, interpreter)
     .useMiniChunks(true);
     joiner.add(chunkResolver.resolveChunks());
-    deferredVariables.addAll(chunkResolver.getDeferredVariables());
+    deferredWords.addAll(chunkResolver.getDeferredWords());
 
-    interpreter
-      .getContext()
-      .handleEagerToken(new EagerToken(tagToken, deferredVariables));
+    interpreter.getContext().handleEagerToken(new EagerToken(tagToken, deferredWords));
     joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
 
     return joiner.toString();

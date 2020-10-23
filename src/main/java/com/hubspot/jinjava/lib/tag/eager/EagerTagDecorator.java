@@ -272,7 +272,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     }
     interpreter
       .getContext()
-      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredVariables()));
+      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
 
     joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
     return joiner.toString();

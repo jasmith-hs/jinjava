@@ -66,7 +66,7 @@ public class ChunkResolverTest {
     ChunkResolver chunkResolver = makeChunkResolver("(111 == 112) || (foo == deferred)");
     String partiallyResolved = chunkResolver.resolveChunks();
     assertThat(partiallyResolved).isEqualTo("false || ('foo_val' == deferred)");
-    assertThat(chunkResolver.getDeferredVariables()).containsExactly("deferred");
+    assertThat(chunkResolver.getDeferredWords()).containsExactly("deferred");
 
     context.put("deferred", "foo_val");
     assertThat(makeChunkResolver(partiallyResolved).resolveChunks()).isEqualTo("true");
@@ -79,8 +79,7 @@ public class ChunkResolverTest {
     context.put("bar", "bar_val");
     ChunkResolver chunkResolver = makeChunkResolver("[foo == bar, deferred, bar]");
     assertThat(chunkResolver.resolveChunks()).isEqualTo("[false,deferred,'bar_val']");
-    assertThat(chunkResolver.getDeferredVariables())
-      .containsExactlyInAnyOrder("deferred");
+    assertThat(chunkResolver.getDeferredWords()).containsExactlyInAnyOrder("deferred");
     context.put("bar", "foo_val");
     assertThat(chunkResolver.resolveChunks()).isEqualTo("[true,deferred,'foo_val']");
   }
@@ -91,7 +90,7 @@ public class ChunkResolverTest {
     ChunkResolver chunkResolver = makeChunkResolver("false || (foo), 'bar'");
     String partiallyResolved = chunkResolver.resolveChunks();
     assertThat(partiallyResolved).isEqualTo("true,'bar'");
-    assertThat(chunkResolver.getDeferredVariables()).isEmpty();
+    assertThat(chunkResolver.getDeferredWords()).isEmpty();
   }
 
   @Test
@@ -100,7 +99,7 @@ public class ChunkResolverTest {
     ChunkResolver chunkResolver = makeChunkResolver("range(0,2)");
     String partiallyResolved = chunkResolver.resolveChunks();
     assertThat(partiallyResolved).isEqualTo("[0,1]");
-    assertThat(chunkResolver.getDeferredVariables()).isEmpty();
+    assertThat(chunkResolver.getDeferredWords()).isEmpty();
     // I don't know why this is a list of longs?
     assertThat((List<Long>) interpreter.resolveELExpression(partiallyResolved, 1))
       .contains(0L, 1L);
@@ -115,7 +114,7 @@ public class ChunkResolverTest {
     ChunkResolver chunkResolver = makeChunkResolver("range(deferred, foo + bar)");
     String partiallyResolved = chunkResolver.resolveChunks();
     assertThat(partiallyResolved).isEqualTo("range(deferred,4)");
-    assertThat(chunkResolver.getDeferredVariables())
+    assertThat(chunkResolver.getDeferredWords())
       .containsExactlyInAnyOrder("deferred", "range");
 
     context.put("deferred", 1);
@@ -134,7 +133,7 @@ public class ChunkResolverTest {
 
     ChunkResolver chunkResolver = makeChunkResolver("[the_dictionary, 1]");
     String partiallyResolved = chunkResolver.resolveChunks();
-    assertThat(chunkResolver.getDeferredVariables()).isEmpty();
+    assertThat(chunkResolver.getDeferredWords()).isEmpty();
     assertThat(interpreter.resolveELExpression(partiallyResolved, 1))
       .isEqualTo(ImmutableList.of(dict, 1L));
   }
@@ -148,7 +147,7 @@ public class ChunkResolverTest {
     );
     String partiallyResolved = chunkResolver.resolveChunks();
     assertThat(partiallyResolved).isEqualTo("[1,range(deferred,3),[1,2]][0:2]");
-    assertThat(chunkResolver.getDeferredVariables())
+    assertThat(chunkResolver.getDeferredWords())
       .containsExactlyInAnyOrder("deferred", "range");
 
     context.put("deferred", 2);
@@ -164,7 +163,7 @@ public class ChunkResolverTest {
     ChunkResolver chunkResolver = makeChunkResolver("range(0,foo) + -deferred/bar");
     String partiallyResolved = chunkResolver.resolveChunks();
     assertThat(partiallyResolved).isEqualTo("[0] + -deferred/4");
-    assertThat(chunkResolver.getDeferredVariables()).containsExactly("deferred");
+    assertThat(chunkResolver.getDeferredWords()).containsExactly("deferred");
 
     context.put("deferred", 2);
     assertThat(makeChunkResolver(partiallyResolved).resolveChunks())
@@ -174,13 +173,27 @@ public class ChunkResolverTest {
   }
 
   @Test
+  public void itSplitsAndIndexesOnNonWords() {
+    context.put("foo", 3);
+    context.put("bar", 4);
+    ChunkResolver chunkResolver = makeChunkResolver("range(-2,foo)[-1] + -deferred/bar");
+    String partiallyResolved = chunkResolver.resolveChunks();
+    assertThat(partiallyResolved).isEqualTo("2 + -deferred/4");
+    assertThat(chunkResolver.getDeferredWords()).containsExactly("deferred");
+
+    context.put("deferred", 2);
+    assertThat(makeChunkResolver(partiallyResolved).resolveChunks()).isEqualTo("1.5");
+    assertThat(interpreter.resolveELExpression(partiallyResolved, 1)).isEqualTo(1.5);
+  }
+
+  @Test
   @Ignore
   // TODO support order of operations
   public void itSupportsOrderOfOperations() {
     ChunkResolver chunkResolver = makeChunkResolver("[0,1]|reverse + deferred");
     String partiallyResolved = chunkResolver.resolveChunks();
     assertThat(partiallyResolved).isEqualTo("[1,0] + deferred");
-    assertThat(chunkResolver.getDeferredVariables()).containsExactly("deferred");
+    assertThat(chunkResolver.getDeferredWords()).containsExactly("deferred");
 
     context.put("deferred", 2);
     assertThat(makeChunkResolver(partiallyResolved).resolveChunks()).isEqualTo("[1,0,2]");
@@ -193,7 +206,8 @@ public class ChunkResolverTest {
     ChunkResolver chunkResolver = makeChunkResolver("range(0, deferred)");
     String partiallyResolved = chunkResolver.resolveChunks();
     assertThat(partiallyResolved).isEqualTo("range(0,deferred)");
-    assertThat(chunkResolver.getDeferredVariables())
+    // Since the range function is deferred, it is added to deferredWords.
+    assertThat(chunkResolver.getDeferredWords())
       .containsExactlyInAnyOrder("range", "deferred");
   }
 }

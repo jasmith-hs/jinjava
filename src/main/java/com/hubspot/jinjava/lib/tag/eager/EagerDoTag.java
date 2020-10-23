@@ -32,8 +32,8 @@ public class EagerDoTag extends EagerStateChangingTag<DoTag> {
       .add(resolvedExpression.getResult());
     interpreter
       .getContext()
-      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredVariables()));
-    if (chunkResolver.getDeferredVariables().isEmpty()) {
+      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
+    if (chunkResolver.getDeferredWords().isEmpty()) {
       // Possible set tag in front of this one. Omits result
       return resolvedExpression.getPrefixToPreserveState();
     }

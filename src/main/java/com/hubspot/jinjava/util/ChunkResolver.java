@@ -16,6 +16,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 /**
+ * This class takes a string and resolves it in chunks. This allows for
+ * strings with deferred values within them to be partially resolved, as much
+ * as they can be with a deferred value.
+ * E.g with foo=3, bar=2:
+ *   "range(0,foo)[-1] + deferred/bar" -> "2 + deferred/2"
  * This class is not thread-safe. Do not reuse between threads.
  */
 public class ChunkResolver {
@@ -69,7 +74,7 @@ public class ChunkResolver {
   private final int length;
   private final TagToken tagToken;
   private final JinjavaInterpreter interpreter;
-  private final Set<String> deferredVariables;
+  private final Set<String> deferredWords;
 
   private boolean useMiniChunks = true;
   private int nextPos = 0;
@@ -82,7 +87,7 @@ public class ChunkResolver {
     length = value.length;
     this.tagToken = tagToken;
     this.interpreter = interpreter;
-    deferredVariables = new HashSet<>();
+    deferredWords = new HashSet<>();
   }
 
   /**
@@ -98,10 +103,10 @@ public class ChunkResolver {
   }
 
   /**
-   * @return Any deferred variables that were encountered.
+   * @return Any deferred words that were encountered.
    */
-  public Set<String> getDeferredVariables() {
-    return deferredVariables;
+  public Set<String> getDeferredWords() {
+    return deferredWords;
   }
 
   /**
@@ -219,7 +224,7 @@ public class ChunkResolver {
       }
       return resolvedToken.trim();
     } catch (DeferredValueException | JsonProcessingException e) {
-      deferredVariables.addAll(findDeferredVariables(token));
+      deferredWords.addAll(findDeferredWords(token));
       return token.trim();
     }
   }
@@ -241,7 +246,7 @@ public class ChunkResolver {
       }
       return resolvedChunk.trim();
     } catch (Exception e) {
-      deferredVariables.addAll(findDeferredVariables(chunk));
+      deferredWords.addAll(findDeferredWords(chunk));
       return chunk.trim();
     }
   }
@@ -257,9 +262,9 @@ public class ChunkResolver {
     return resolvedChunk;
   }
 
-  // Find any variables, functions, etc in this chunk and mark as deferred.
+  // Find any variables, functions, etc in this chunk to mark as deferred.
   // similar processing to getChunk method, but without recursion.
-  private Set<String> findDeferredVariables(String chunk) {
+  private Set<String> findDeferredWords(String chunk) {
     Set<String> words = new HashSet<>();
     char[] value = chunk.toCharArray();
     int prevQuotePos = 0;
@@ -278,18 +283,18 @@ public class ChunkResolver {
       } else if ((c == '\'' || c == '"') && prevChar != '\\') {
         inQuote = true;
         quoteChar = c;
-        words.addAll(findWords(chunk, prevQuotePos, curPos));
+        words.addAll(findDeferredWordsInSubstring(chunk, prevQuotePos, curPos));
       }
       prevChar = c;
       curPos++;
     }
-    words.addAll(findWords(chunk, prevQuotePos, curPos));
+    words.addAll(findDeferredWordsInSubstring(chunk, prevQuotePos, curPos));
     return words;
   }
 
   // Knowing that there are no quotes between start and end,
   // split up the words in `chunk` and return whichever ones can't be resolved.
-  private Set<String> findWords(String chunk, int start, int end) {
+  private Set<String> findDeferredWordsInSubstring(String chunk, int start, int end) {
     return Arrays
       .stream(chunk.substring(start, end).split("[^\\w]"))
       .filter(StringUtils::isNotBlank)

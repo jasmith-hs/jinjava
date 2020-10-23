@@ -5,18 +5,18 @@ import java.util.Set;
 
 public class EagerToken {
   private Token token;
-  private Set<String> deferredHelpers;
+  private Set<String> deferredWords;
 
-  public EagerToken(Token token, Set<String> deferredHelpers) {
+  public EagerToken(Token token, Set<String> deferredWords) {
     this.token = token;
-    this.deferredHelpers = deferredHelpers;
+    this.deferredWords = deferredWords;
   }
 
   public Token getToken() {
     return token;
   }
 
-  public Set<String> getDeferredHelpers() {
-    return deferredHelpers;
+  public Set<String> getDeferredWords() {
+    return deferredWords;
   }
 }

@@ -148,7 +148,7 @@ public class DeferredValueUtils {
     StringJoiner joiner = new StringJoiner(" ");
     eagerTokens
       .stream()
-      .flatMap(e -> e.getDeferredHelpers().stream())
+      .flatMap(e -> e.getDeferredWords().stream())
       .map(h -> h + ".eager.helper")
       .forEach(joiner::add);
     return joiner.toString();

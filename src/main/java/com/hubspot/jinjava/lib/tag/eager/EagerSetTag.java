@@ -50,10 +50,10 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       .add(var)
       .add("=")
       .add(resolvedExpression.getResult());
-    Set<String> deferredVariables = new HashSet<>(chunkResolver.getDeferredVariables());
+    Set<String> deferredWords = new HashSet<>(chunkResolver.getDeferredWords());
     String[] varTokens = var.split(",");
-    if (!deferredVariables.isEmpty()) {
-      deferredVariables.addAll(
+    if (!deferredWords.isEmpty()) {
+      deferredWords.addAll(
         Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
       );
     } else {
@@ -63,15 +63,13 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
         // Possible set tag in front of this one.
         return resolvedExpression.getPrefixToPreserveState() + "";
       } catch (DeferredValueException e) {
-        deferredVariables.addAll(
+        deferredWords.addAll(
           Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
         );
       }
     }
 
-    interpreter
-      .getContext()
-      .handleEagerToken(new EagerToken(tagToken, deferredVariables));
+    interpreter.getContext().handleEagerToken(new EagerToken(tagToken, deferredWords));
     joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
 
     // Possible set tag in front of this one.
