@@ -1,36 +1,49 @@
 package com.hubspot.jinjava.lib.tag.eager;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableMap;
+import com.hubspot.jinjava.lib.tag.DoTag;
+import com.hubspot.jinjava.lib.tag.ForTag;
+import com.hubspot.jinjava.lib.tag.IfTag;
+import com.hubspot.jinjava.lib.tag.PrintTag;
+import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.lib.tag.Tag;
-import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public class EagerTagFactory {
-  private Set<Class<? extends Tag>> skippedTagClasses;
+  public static final Map<Class<? extends Tag>, Class<? extends EagerTagDecorator<? extends Tag>>> EAGER_TAG_OVERRIDES = ImmutableMap
+    .<Class<? extends Tag>, Class<? extends EagerTagDecorator<?>>>builder()
+    .put(DoTag.class, EagerDoTag.class)
+    .put(ForTag.class, EagerForTag.class)
+    .put(IfTag.class, EagerIfTag.class)
+    .put(PrintTag.class, EagerPrintTag.class)
+    .put(SetTag.class, EagerSetTag.class)
+    .build();
 
-  public EagerTagFactory() {
-    this.skippedTagClasses = Collections.emptySet();
-  }
-
-  public EagerTagFactory(Class<? extends Tag>... skippedTagClass) {
-    this.skippedTagClasses = Sets.newHashSet(skippedTagClass);
-  }
-
-  public EagerTagFactory(Set<Class<? extends Tag>> skippedTagClasses) {
-    this.skippedTagClasses = skippedTagClasses;
-  }
-
-  public <T extends Tag> Optional<EagerTagDecorator<T>> getEagerTagDecorator(
+  @SuppressWarnings("unchecked")
+  public static <T extends Tag> Optional<EagerTagDecorator<T>> getEagerTagDecorator(
     Class<T> clazz
   ) {
     try {
-      if (skippedTagClasses.contains(clazz)) {
-        return Optional.empty();
+      if (EAGER_TAG_OVERRIDES.containsKey(clazz)) {
+        EagerTagDecorator<?> decorator = EAGER_TAG_OVERRIDES
+          .get(clazz)
+          .getDeclaredConstructor()
+          .newInstance();
+        if (decorator.getTag().getClass() == clazz) {
+          return Optional.of(
+            (EagerTagDecorator<T>) EAGER_TAG_OVERRIDES
+              .get(clazz)
+              .getDeclaredConstructor()
+              .newInstance()
+          );
+        }
       }
       T tag = clazz.getDeclaredConstructor().newInstance();
       return Optional.of(new EagerGenericTag<>(tag));
+    } catch (NoSuchMethodException e) {
+      return Optional.empty();
     } catch (Exception e) {
       Throwables.throwIfUnchecked(e);
       throw new RuntimeException(e);

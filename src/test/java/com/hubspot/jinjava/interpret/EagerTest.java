@@ -8,13 +8,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import com.hubspot.jinjava.Jinjava;
 import com.hubspot.jinjava.JinjavaConfig;
-import com.hubspot.jinjava.lib.tag.EndTag;
-import com.hubspot.jinjava.lib.tag.SetTag;
-import com.hubspot.jinjava.lib.tag.eager.EagerDoTag;
-import com.hubspot.jinjava.lib.tag.eager.EagerForTag;
-import com.hubspot.jinjava.lib.tag.eager.EagerIfTag;
-import com.hubspot.jinjava.lib.tag.eager.EagerPrintTag;
-import com.hubspot.jinjava.lib.tag.eager.EagerSetTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
 import com.hubspot.jinjava.random.RandomNumberGeneratorStrategy;
 import com.hubspot.jinjava.util.DeferredValueUtils;
@@ -30,11 +23,7 @@ import org.junit.Test;
 
 public class EagerTest {
   private JinjavaInterpreter interpreter;
-  private Jinjava jinjava = new Jinjava();
-  private EagerTagFactory eagerTagFactory = new EagerTagFactory(
-    EndTag.class,
-    SetTag.class
-  );
+  private final Jinjava jinjava = new Jinjava();
   Context globalContext = new Context();
   Context localContext; // ref to context created with global as parent
 
@@ -55,15 +44,9 @@ public class EagerTest {
     localContext
       .getAllTags()
       .stream()
-      .map(tag -> eagerTagFactory.getEagerTagDecorator(tag.getClass()))
+      .map(tag -> EagerTagFactory.getEagerTagDecorator(tag.getClass()))
       .filter(Optional::isPresent)
       .forEach(maybeEagerTag -> localContext.registerTag(maybeEagerTag.get()));
-
-    localContext.registerTag(new EagerIfTag());
-    localContext.registerTag(new EagerForTag());
-    localContext.registerTag(new EagerSetTag());
-    localContext.registerTag(new EagerDoTag());
-    localContext.registerTag(new EagerPrintTag());
 
     localContext.put("deferred", DeferredValue.instance());
     localContext.put("resolved", "resolvedValue");
