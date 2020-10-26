@@ -41,7 +41,8 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
     .useMiniChunks(true);
     EagerStringResult resolvedExpression = executeInChildContext(
       eagerInterpreter -> chunkResolver.resolveChunks(),
-      interpreter
+      interpreter,
+      true
     );
     StringJoiner joiner = new StringJoiner(" ");
     joiner
@@ -50,18 +51,26 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       .add(var)
       .add("=")
       .add(resolvedExpression.getResult());
+    StringBuilder prefixToPreserveState = new StringBuilder(
+      interpreter.getContext().isEagerMode()
+        ? resolvedExpression.getPrefixToPreserveState()
+        : ""
+    );
     Set<String> deferredWords = new HashSet<>(chunkResolver.getDeferredWords());
     String[] varTokens = var.split(",");
     if (!deferredWords.isEmpty()) {
       deferredWords.addAll(
         Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
       );
+      prefixToPreserveState.append(
+        getNewlyDeferredFunctionImages(deferredWords, interpreter)
+      );
     } else {
       try {
         getTag()
           .executeSet(tagToken, interpreter, varTokens, resolvedExpression.getResult());
         // Possible set tag in front of this one.
-        return resolvedExpression.getPrefixToPreserveState() + "";
+        return prefixToPreserveState.toString();
       } catch (DeferredValueException e) {
         deferredWords.addAll(
           Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
@@ -69,10 +78,12 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       }
     }
 
-    interpreter.getContext().handleEagerToken(new EagerToken(tagToken, deferredWords));
+    interpreter
+      .getContext()
+      .handleEagerToken(buildEagerToken(tagToken, deferredWords, interpreter));
     joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
 
     // Possible set tag in front of this one.
-    return resolvedExpression.getPrefixToPreserveState() + joiner.toString();
+    return prefixToPreserveState.append(joiner.toString()).toString();
   }
 }

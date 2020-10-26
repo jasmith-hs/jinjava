@@ -3,16 +3,19 @@ package com.hubspot.jinjava.interpret;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import com.hubspot.jinjava.Jinjava;
 import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
+import com.hubspot.jinjava.objects.collections.PyList;
 import com.hubspot.jinjava.random.RandomNumberGeneratorStrategy;
 import com.hubspot.jinjava.util.DeferredValueUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
@@ -259,6 +262,7 @@ public class EagerTest {
     localContext.put("added_padding", 10);
     // not deferred anymore
     localContext.put("deferred", 5);
+    localContext.remove("int");
     localContext.getGlobalMacro("inc_padding").setDeferred(false);
 
     String output = interpreter.render(deferredOutput);
@@ -467,6 +471,33 @@ public class EagerTest {
   public void itHandlesLoopVarAgainstDeferredInLoopSecondPass() {
     localContext.put("deferred", "resolved");
     assertExpectedOutput("handles-loop-var-against-deferred-in-loop.expected");
+  }
+
+  @Test
+  public void itDefersMacroForDoAndPrint() {
+    localContext.put("my_list", new PyList(new ArrayList<>()));
+    localContext.put("first", 10);
+    localContext.put("deferred2", DeferredValue.instance());
+    String deferredOutput = assertExpectedOutput("defers-macro-for-do-and-print");
+    Object myList = localContext.get("my_list");
+    assertThat(myList).isInstanceOf(DeferredValue.class);
+    assertThat(((DeferredValue) myList).getOriginalValue())
+      .isEqualTo(ImmutableList.of(10L));
+
+    localContext.put("my_list", ((DeferredValue) myList).getOriginalValue());
+    localContext.put("first", 10);
+    // not deferred anymore
+    localContext.put("deferred", 5);
+    localContext.put("deferred2", 10);
+
+    // TODO auto remove deferred
+    localContext.remove("append");
+    localContext.getEagerTokens().clear();
+    localContext.getGlobalMacro("macro_append").setDeferred(false);
+
+    String output = interpreter.render(deferredOutput);
+    assertThat(output.replace("\n", ""))
+      .isEqualTo("Is ([]),'Macro: [10]'Is ([10]),Is ([10, 5]),'Macro: [10, 5, 10]'");
   }
 
   @Test

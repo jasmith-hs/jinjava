@@ -77,6 +77,39 @@ public class DeferredValueUtils {
     return deferredProps;
   }
 
+  public static Set<String> findAndMarkDeferredEagerProperties(Context context) {
+    Set<String> deferredProps = getPropertiesUsedInDeferredNodes(
+      context,
+      rebuildTemplateForEagerTagTokens(context.getEagerTokens()),
+      false
+    );
+    Set<String> deferredPropsForParents = new HashSet<>();
+    deferredProps
+      .stream()
+      .filter(prop -> !(context.get(prop) instanceof DeferredValue))
+      .peek(
+        prop -> {
+          if (!context.getScope().containsKey(prop)) {
+            deferredPropsForParents.add(prop);
+          }
+        }
+      )
+      .forEach(
+        prop -> {
+          if (context.get(prop) != null) {
+            context.put(prop, DeferredValue.instance(context.get(prop)));
+          } else {
+            //Handle set props
+            context.put(prop, DeferredValue.instance());
+          }
+        }
+      );
+
+    //    markDeferredProperties(context, deferredProps);
+
+    return deferredPropsForParents;
+  }
+
   public static Set<String> getPropertiesSetInDeferredNodes(String templateSource) {
     return findSetProperties(templateSource);
   }

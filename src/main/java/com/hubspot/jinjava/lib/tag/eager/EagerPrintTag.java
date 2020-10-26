@@ -23,22 +23,33 @@ public class EagerPrintTag extends EagerStateChangingTag<PrintTag> {
     .useMiniChunks(true);
     EagerStringResult resolvedExpression = executeInChildContext(
       eagerInterpreter -> chunkResolver.resolveChunks(),
-      interpreter
+      interpreter,
+      true
     );
     StringJoiner joiner = new StringJoiner(" ");
     joiner
       .add(tagToken.getSymbols().getExpressionStartWithTag())
       .add(tagToken.getTagName())
       .add(resolvedExpression.getResult());
+    StringBuilder prefixToPreserveState = new StringBuilder(
+      interpreter.getContext().isEagerMode()
+        ? resolvedExpression.getPrefixToPreserveState()
+        : ""
+    );
+    if (chunkResolver.getDeferredWords().isEmpty()) {
+      // Possible set tag in front of this one. Includes result
+      return prefixToPreserveState.toString() + resolvedExpression.getResult();
+    }
+    prefixToPreserveState.append(
+      getNewlyDeferredFunctionImages(chunkResolver.getDeferredWords(), interpreter)
+    );
     interpreter
       .getContext()
-      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
-    if (chunkResolver.getDeferredWords().isEmpty()) {
-      // Possible set tag in front of this one. Omits result
-      return resolvedExpression.toString();
-    }
+      .handleEagerToken(
+        buildEagerToken(tagToken, chunkResolver.getDeferredWords(), interpreter)
+      );
     joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
     // Possible set tag in front of this one.
-    return resolvedExpression.getPrefixToPreserveState() + joiner.toString();
+    return prefixToPreserveState.toString() + joiner.toString();
   }
 }

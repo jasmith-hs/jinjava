@@ -55,7 +55,8 @@ public class ChunkResolver {
     "set",
     "trans",
     "call",
-    "endcall"
+    "endcall",
+    "__macros__"
   );
 
   // ( -> )
@@ -296,13 +297,26 @@ public class ChunkResolver {
   // split up the words in `chunk` and return whichever ones can't be resolved.
   private Set<String> findDeferredWordsInSubstring(String chunk, int start, int end) {
     return Arrays
-      .stream(chunk.substring(start, end).split("[^\\w]"))
+      .stream(chunk.substring(start, end).split("[^\\w.]"))
       .filter(StringUtils::isNotBlank)
       .filter(
         w -> {
           try {
             if (RESERVED_KEYWORDS.contains(w)) {
               return false;
+            }
+            try {
+              Object val = interpreter.retraceVariable(
+                w,
+                tagToken.getLineNumber(),
+                tagToken.getStartPosition()
+              );
+              if (val != null) {
+                // It's a variable that must now be deferred
+                return true;
+              }
+            } catch (UnknownTokenException e) {
+              // val is still null
             }
             // don't defer numbers, values such as true/false, etc.
             return interpreter.resolveELExpression(w, tagToken.getLineNumber()) == null;

@@ -19,8 +19,11 @@ import com.hubspot.jinjava.tree.parse.Token;
 import com.hubspot.jinjava.util.ChunkResolver;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -71,14 +74,23 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
    *   to the isolated context, ie declared.
    * @param declareDisabledFunction Function to run restricting declaration of variables.
    * @param interpreter JinjavaInterpreter to create a child from.
+   * @param takeNewValue If a value is updated (not replaced) either take the new value or
+   *                     take the previous value and put it into the
+   *                     <code>EagerStringResult.prefixToPreserveState</code>.
    * @return The combined string results of <code>declareEnabledFunction</code> and
    *   <code>declareDisabledFunction</code>
    */
   public EagerStringResult executeInChildContext(
     Function<JinjavaInterpreter, String> declareDisabledFunction,
-    JinjavaInterpreter interpreter
+    JinjavaInterpreter interpreter,
+    boolean takeNewValue
   ) {
-    return executeInChildContext(declareDisabledFunction, e -> "", interpreter, true);
+    return executeInChildContext(
+      e -> "",
+      declareDisabledFunction,
+      interpreter,
+      takeNewValue
+    );
   }
 
   /**
@@ -182,6 +194,49 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     return new EagerStringResult(result.toString());
   }
 
+  public String getNewlyDeferredFunctionImages(
+    Set<String> deferredWords,
+    JinjavaInterpreter interpreter
+  ) {
+    Set<String> toRemove = new HashSet<>();
+    String result = deferredWords
+      .stream()
+      .map(o -> interpreter.getContext().getGlobalMacro(o))
+      .filter(Objects::nonNull)
+      .peek(macro -> toRemove.add(macro.getName()))
+      .filter(macro -> !macro.isDeferred())
+      .peek(
+        macro -> {
+          macro.setDeferred(true);
+          interpreter.getContext().addGlobalMacro(macro);
+        }
+      )
+      .map(
+        macro ->
+          executeInChildContext(
+            eagerInterpreter -> {
+              try {
+                return (String) macro.evaluate(
+                  macro
+                    .getArguments()
+                    .stream()
+                    .map(arg -> DeferredValue.instance())
+                    .toArray()
+                );
+              } catch (DeferredValueException e) {
+                return macro.reconstructImage();
+              }
+            },
+            interpreter,
+            false
+          )
+      )
+      .map(EagerStringResult::toString)
+      .collect(Collectors.joining());
+    deferredWords.removeAll(toRemove);
+    return result;
+  }
+
   private String buildSetTagForDeferredInChildContext(
     Map<String, String> deferredValuesToSet,
     JinjavaInterpreter interpreter,
@@ -212,21 +267,24 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       .add(values.toString())
       .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag());
     String image = result.toString();
-    interpreter
-      .getContext()
-      .handleEagerToken(
-        new EagerToken(
-          new TagToken(
-            image,
-            // TODO this line number won't be accurate, currently doesn't matter.
-            interpreter.getLineNumber(),
-            interpreter.getPosition(),
-            interpreter.getConfig().getTokenScannerSymbols()
-          ),
-          // Don't defer if we're sticking with the new value
-          takeNewValue ? Collections.emptySet() : deferredValuesToSet.keySet()
-        )
-      );
+    // Don't defer if we're sticking with the new value
+    if (!takeNewValue) {
+      interpreter
+        .getContext()
+        .handleEagerToken(
+          buildEagerToken(
+            new TagToken(
+              image,
+              // TODO this line number won't be accurate, currently doesn't matter.
+              interpreter.getLineNumber(),
+              interpreter.getPosition(),
+              interpreter.getConfig().getTokenScannerSymbols()
+            ),
+            deferredValuesToSet.keySet(),
+            interpreter
+          )
+        );
+    }
     return image;
   }
 
@@ -272,7 +330,9 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     }
     interpreter
       .getContext()
-      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
+      .handleEagerToken(
+        buildEagerToken(tagToken, chunkResolver.getDeferredWords(), interpreter)
+      );
 
     joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
     return joiner.toString();
@@ -285,7 +345,11 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     interpreter
       .getContext()
       .handleEagerToken(
-        new EagerToken(expressionToken, Collections.singleton(expressionToken.getExpr()))
+        buildEagerToken(
+          expressionToken,
+          Collections.singleton(expressionToken.getExpr()),
+          interpreter
+        )
       );
     return expressionToken.getImage();
   }
@@ -294,7 +358,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     interpreter
       .getContext()
       .handleEagerToken(
-        new EagerToken(textToken, Collections.singleton(textToken.output()))
+        buildEagerToken(textToken, Collections.singleton(textToken.output()), interpreter)
       );
     return textToken.getImage();
   }
@@ -334,6 +398,25 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       tagNode.getSymbols().getExpressionStartWithTag(),
       tagNode.getEndName(),
       tagNode.getSymbols().getExpressionEndWithTag()
+    );
+  }
+
+  public static EagerToken buildEagerToken(
+    Token token,
+    Set<String> deferredWords,
+    JinjavaInterpreter interpreter
+  ) {
+    return new EagerToken(
+      token,
+      deferredWords
+      //        .stream()
+      //        .filter(
+      //          w ->
+      //            !interpreter.getContext().containsKey(w) ||
+      //            // Don't add already deferred values (they may be temporary).
+      //            !(interpreter.getContext().get(w) instanceof DeferredValue)
+      //        )
+      //        .collect(Collectors.toSet())
     );
   }
 }

@@ -62,7 +62,9 @@ public class EagerForTag extends EagerTagDecorator<ForTag> {
     joiner.add(chunkResolver.resolveChunks());
     deferredWords.addAll(chunkResolver.getDeferredWords());
 
-    interpreter.getContext().handleEagerToken(new EagerToken(tagToken, deferredWords));
+    interpreter
+      .getContext()
+      .handleEagerToken(buildEagerToken(tagToken, deferredWords, interpreter));
     joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
 
     return joiner.toString();

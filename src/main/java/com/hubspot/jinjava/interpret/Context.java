@@ -302,11 +302,16 @@ public class Context extends ScopeMap<String, Object> {
       //Ignore global context
       if (parent.getParent() != null) {
         //Place deferred values on the parent context
-        deferredProps
-          .stream()
-          .filter(key -> !parent.containsKey(key))
-          .forEach(key -> parent.put(key, this.get(key)));
-        getParent().handleEagerToken(eagerToken);
+        parent.handleEagerToken(eagerToken);
+        //        parent.handleEagerToken(
+        //          new EagerToken(
+        //            eagerToken.getToken(),
+        //            deferredProps
+        //              .stream()
+        //              .filter(key -> eagerToken.getDeferredWords().contains(key))
+        //              .collect(Collectors.toSet())
+        //          )
+        //        );
       }
     }
   }
