@@ -58,15 +58,8 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
         ? resolvedExpression.getPrefixToPreserveState()
         : ""
     );
-    Set<String> deferredWords = new HashSet<>(chunkResolver.getDeferredWords());
     String[] varTokens = variables.split(",");
-    deferredWords.addAll(
-      Arrays
-        .stream(varTokens)
-        .map(prop -> prop.split("\\.", 2)[0])
-        .filter(v -> interpreter.getContext().get(v) instanceof DeferredValue)
-        .collect(Collectors.toSet())
-    );
+
     if (chunkResolver.getDeferredWords().isEmpty()) {
       try {
         getTag()
@@ -76,14 +69,18 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       } catch (DeferredValueException ignored) {}
     }
     prefixToPreserveState.append(
-      getNewlyDeferredFunctionImages(deferredWords, interpreter)
-    );
-    // Defer all vars.
-    deferredWords.addAll(
-      Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
+      getNewlyDeferredFunctionImages(chunkResolver.getDeferredWords(), interpreter)
     );
 
-    interpreter.getContext().handleEagerToken(new EagerToken(tagToken, deferredWords));
+    interpreter
+      .getContext()
+      .handleEagerToken(
+        new EagerToken(
+          tagToken,
+          chunkResolver.getDeferredWords(),
+          Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
+        )
+      );
     // Possible macro/set tag in front of this one.
     return prefixToPreserveState.toString() + joiner.toString();
   }

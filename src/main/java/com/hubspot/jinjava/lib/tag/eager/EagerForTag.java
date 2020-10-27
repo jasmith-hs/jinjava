@@ -38,7 +38,6 @@ public class EagerForTag extends EagerTagDecorator<ForTag> {
       );
     }
 
-    Set<String> deferredWords = new HashSet<>(loopVars);
     String loopExpression = getTag().getLoopExpression(helperTokens, loopVars);
     ChunkResolver chunkResolver = new ChunkResolver(loopExpression, tagToken, interpreter)
     .useMiniChunks(true);
@@ -51,13 +50,20 @@ public class EagerForTag extends EagerTagDecorator<ForTag> {
       .add("in")
       .add(chunkResolver.resolveChunks())
       .add(tagToken.getSymbols().getExpressionEndWithTag());
-    deferredWords.addAll(chunkResolver.getDeferredWords());
     String newlyDeferredFunctionImages = getNewlyDeferredFunctionImages(
-      deferredWords,
+      chunkResolver.getDeferredWords(),
       interpreter
     );
 
-    interpreter.getContext().handleEagerToken(new EagerToken(tagToken, deferredWords));
+    interpreter
+      .getContext()
+      .handleEagerToken(
+        new EagerToken(
+          tagToken,
+          chunkResolver.getDeferredWords(),
+          new HashSet<>(loopVars)
+        )
+      );
     return (newlyDeferredFunctionImages + joiner.toString());
   }
 }

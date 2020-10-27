@@ -60,7 +60,8 @@ public class EagerIfTagTest extends IfTagTest {
       .filter(e -> ((TagToken) e.getToken()).getTagName().equals(tag.getName()))
       .findAny();
     assertThat(maybeEagerTagToken).isPresent();
-    assertThat(maybeEagerTagToken.get().getDeferredWords())
+    assertThat(maybeEagerTagToken.get().getSetDeferredWords()).isEmpty();
+    assertThat(maybeEagerTagToken.get().getUsedDeferredWords())
       .containsExactlyInAnyOrder("deferred");
   }
 }

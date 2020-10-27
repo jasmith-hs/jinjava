@@ -3,7 +3,6 @@ package com.hubspot.jinjava.lib.tag.eager;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.hubspot.jinjava.ExpectedNodeInterpreter;
-import com.hubspot.jinjava.Jinjava;
 import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
@@ -51,7 +50,7 @@ public class EagerSetTagTest extends SetTagTest {
       .filter(e -> ((TagToken) e.getToken()).getTagName().equals(tag.getName()))
       .findAny();
     assertThat(maybeEagerToken).isPresent();
-    assertThat(maybeEagerToken.get().getDeferredWords()).containsExactly("foo");
+    assertThat(maybeEagerToken.get().getSetDeferredWords()).containsExactly("foo");
   }
 
   @Test
@@ -61,14 +60,16 @@ public class EagerSetTagTest extends SetTagTest {
     expectedNodeInterpreter.assertExpectedOutput(
       "partially-evaluates-deferred-expression"
     );
-    Optional<EagerToken> maybeEagerTagToken = context
+    Optional<EagerToken> maybeEagerToken = context
       .getEagerTokens()
       .stream()
       .filter(e -> ((TagToken) e.getToken()).getTagName().equals(tag.getName()))
       .findAny();
-    assertThat(maybeEagerTagToken).isPresent();
-    assertThat(maybeEagerTagToken.get().getDeferredWords())
-      .containsExactlyInAnyOrder("foo", "deferred", "range");
+    assertThat(maybeEagerToken).isPresent();
+    assertThat(maybeEagerToken.get().getSetDeferredWords())
+      .containsExactlyInAnyOrder("foo");
+    assertThat(maybeEagerToken.get().getUsedDeferredWords())
+      .containsExactlyInAnyOrder("deferred", "range");
   }
 
   @Test
@@ -77,14 +78,16 @@ public class EagerSetTagTest extends SetTagTest {
     context.put("baz", 6);
     context.setEagerMode(true);
     expectedNodeInterpreter.assertExpectedOutput("handles-multiple-vars");
-    Optional<EagerToken> maybeEagerTagToken = context
+    Optional<EagerToken> maybeEagerToken = context
       .getEagerTokens()
       .stream()
       .filter(e -> ((TagToken) e.getToken()).getTagName().equals(tag.getName()))
       .findAny();
-    assertThat(maybeEagerTagToken).isPresent();
-    assertThat(maybeEagerTagToken.get().getDeferredWords())
-      .containsExactlyInAnyOrder("foo", "foobar", "deferred", "range");
+    assertThat(maybeEagerToken).isPresent();
+    assertThat(maybeEagerToken.get().getSetDeferredWords())
+      .containsExactlyInAnyOrder("foo", "foobar");
+    assertThat(maybeEagerToken.get().getUsedDeferredWords())
+      .containsExactlyInAnyOrder("deferred", "range");
   }
 
   @Test

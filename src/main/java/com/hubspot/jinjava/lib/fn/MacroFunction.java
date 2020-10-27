@@ -104,7 +104,10 @@ public class MacroFunction extends AbstractCallableMethod {
         result.append(node.render(interpreter));
       }
 
-      if (!interpreter.getContext().getDeferredNodes().isEmpty()) {
+      if (
+        !interpreter.getContext().getDeferredNodes().isEmpty() ||
+        !interpreter.getContext().getEagerTokens().isEmpty()
+      ) {
         throw new DeferredValueException(
           getName(),
           interpreter.getLineNumber(),

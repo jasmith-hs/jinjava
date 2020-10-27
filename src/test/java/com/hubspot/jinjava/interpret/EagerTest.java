@@ -312,10 +312,6 @@ public class EagerTest {
     assertThat(output.trim())
       .isEqualTo("{% if deferred == 'testvalue' %} true {% else %} false {% endif %}");
 
-    //    Object varInScope = localContext.get("testVar");
-    //    assertThat(varInScope).isInstanceOf(DeferredValue.class);
-    //    DeferredValue varInScopeDeferred = (DeferredValue) varInScope;
-    //    assertThat(varInScopeDeferred.getOriginalValue()).isEqualTo("testvalue");
     HashMap<String, Object> deferredContext = DeferredValueUtils.getDeferredContextWithOriginalValues(
       localContext
     );
@@ -337,11 +333,6 @@ public class EagerTest {
     String template = getDeferredFixtureTemplate("set-within-lower-scope.jinja");
     localContext.put("deferredValue", DeferredValue.instance("resolved"));
     String output = interpreter.render(template);
-    //    assertThat(localContext).containsKey("varSetInside");
-    //    Object varSetInside = localContext.get("varSetInside");
-    //    assertThat(varSetInside).isInstanceOf(DeferredValue.class);
-    //    DeferredValue varSetInsideDeferred = (DeferredValue) varSetInside;
-    //    assertThat(varSetInsideDeferred.getOriginalValue()).isEqualTo("inside first scope");
     HashMap<String, Object> deferredContext = DeferredValueUtils.getDeferredContextWithOriginalValues(
       localContext
     );
@@ -356,11 +347,6 @@ public class EagerTest {
 
     localContext.put("deferredValue", DeferredValue.instance("resolved"));
     String output = interpreter.render(template);
-    //    assertThat(localContext).containsKey("varSetInside");
-    //    Object varSetInside = localContext.get("varSetInside");
-    //    assertThat(varSetInside).isInstanceOf(DeferredValue.class);
-    //    DeferredValue varSetInsideDeferred = (DeferredValue) varSetInside;
-    //    assertThat(varSetInsideDeferred.getOriginalValue()).isEqualTo("inside first scope");
 
     HashMap<String, Object> deferredContext = DeferredValueUtils.getDeferredContextWithOriginalValues(
       localContext
@@ -421,10 +407,18 @@ public class EagerTest {
         localContext
           .getEagerTokens()
           .stream()
-          .flatMap(eagerToken -> eagerToken.getDeferredWords().stream())
+          .flatMap(eagerToken -> eagerToken.getSetDeferredWords().stream())
           .collect(Collectors.toSet())
       )
-      .containsExactlyInAnyOrder("item", "deferred");
+      .containsExactlyInAnyOrder("item");
+    assertThat(
+        localContext
+          .getEagerTokens()
+          .stream()
+          .flatMap(eagerToken -> eagerToken.getUsedDeferredWords().stream())
+          .collect(Collectors.toSet())
+      )
+      .contains("deferred");
   }
 
   @Test
@@ -519,7 +513,11 @@ public class EagerTest {
   public void itEagerlyDefersImport() {}
 
   @Test
-  public void itEagerlyDefersMacro() {}
+  public void itEagerlyDefersMacro() {
+    localContext.put("foo", "I am foo");
+    localContext.put("bar", "I am bar");
+    assertExpectedOutput("eagerly-defers-macro");
+  }
 
   @Test
   public void itEagerlyDefersFrom() {}

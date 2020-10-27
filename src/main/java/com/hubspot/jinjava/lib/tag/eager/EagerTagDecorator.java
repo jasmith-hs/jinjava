@@ -1,5 +1,8 @@
 package com.hubspot.jinjava.lib.tag.eager;
 
+import static com.hubspot.jinjava.interpret.Context.GLOBAL_MACROS_SCOPE_KEY;
+import static com.hubspot.jinjava.interpret.Context.IMPORT_RESOURCE_PATH_KEY;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.hubspot.jinjava.interpret.Context.Library;
 import com.hubspot.jinjava.interpret.DeferredValue;
@@ -69,25 +72,26 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
   /**
    * Execute the specified function within an isolated context,
    *   not allowing anything new to be declared.
-   * The <code>declareDisabledFunction</code> is run and will throw a
+   * The <code>function</code> is run and will throw a
    *   <code>DeferredValueException</code> if a new value is attempted to be added
    *   to the isolated context, ie declared.
-   * @param declareDisabledFunction Function to run restricting declaration of variables.
+   * @param function Function to run in a child context.
    * @param interpreter JinjavaInterpreter to create a child from.
    * @param takeNewValue If a value is updated (not replaced) either take the new value or
    *                     take the previous value and put it into the
    *                     <code>EagerStringResult.prefixToPreserveState</code>.
+   *                     When true, eager mode is off. When false, eager mode is on.
    * @return The combined string results of <code>declareEnabledFunction</code> and
-   *   <code>declareDisabledFunction</code>
+   *   <code>function</code>
    */
   public EagerStringResult executeInChildContext(
-    Function<JinjavaInterpreter, String> declareDisabledFunction,
+    Function<JinjavaInterpreter, String> function,
     JinjavaInterpreter interpreter,
     boolean takeNewValue
   ) {
     return executeInChildContext(
-      e -> "",
-      declareDisabledFunction,
+      takeNewValue ? e -> "" : function,
+      takeNewValue ? function : e -> "",
       interpreter,
       takeNewValue
     );
@@ -128,6 +132,11 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       .getContext()
       .entrySet()
       .stream()
+      .filter(
+        e ->
+          !e.getKey().equals(GLOBAL_MACROS_SCOPE_KEY) &&
+          !e.getKey().equals(IMPORT_RESOURCE_PATH_KEY)
+      )
       .filter(e -> !(e.getValue() instanceof DeferredValue))
       .forEach(
         entry -> {
@@ -225,6 +234,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
                     .toArray()
                 );
               } catch (DeferredValueException e) {
+                // TODO eager reconstruct;
                 return macro.reconstructImage();
               }
             },
@@ -281,6 +291,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
               interpreter.getPosition(),
               interpreter.getConfig().getTokenScannerSymbols()
             ),
+            Collections.emptySet(),
             deferredValuesToSet.keySet()
           )
         );
