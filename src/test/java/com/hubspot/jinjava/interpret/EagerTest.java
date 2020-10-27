@@ -35,6 +35,7 @@ public class EagerTest {
     JinjavaConfig config = JinjavaConfig
       .newBuilder()
       .withRandomNumberGeneratorStrategy(RandomNumberGeneratorStrategy.DEFERRED)
+      .withPreserveForFinalPass(true)
       .build();
     JinjavaInterpreter parentInterpreter = new JinjavaInterpreter(
       jinjava,
@@ -491,13 +492,24 @@ public class EagerTest {
     localContext.put("deferred2", 10);
 
     // TODO auto remove deferred
-    localContext.remove("append");
     localContext.getEagerTokens().clear();
     localContext.getGlobalMacro("macro_append").setDeferred(false);
 
     String output = interpreter.render(deferredOutput);
     assertThat(output.replace("\n", ""))
       .isEqualTo("Is ([]),'Macro: [10]'Is ([10]),Is ([10, 5]),'Macro: [10, 5, 10]'");
+  }
+
+  @Test
+  public void itDefersMacroInFor() {
+    localContext.put("my_list", new PyList(new ArrayList<>()));
+    assertExpectedOutput("defers-macro-in-for");
+  }
+
+  @Test
+  public void itDefersMacroInIf() {
+    localContext.put("my_list", new PyList(new ArrayList<>()));
+    assertExpectedOutput("defers-macro-in-if");
   }
 
   @Test

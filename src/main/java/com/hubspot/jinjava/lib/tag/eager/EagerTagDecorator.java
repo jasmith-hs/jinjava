@@ -201,7 +201,8 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     Set<String> toRemove = new HashSet<>();
     String result = deferredWords
       .stream()
-      .map(o -> interpreter.getContext().getGlobalMacro(o))
+      .filter(w -> !interpreter.getContext().containsKey(w))
+      .map(w -> interpreter.getContext().getGlobalMacro(w))
       .filter(Objects::nonNull)
       .peek(macro -> toRemove.add(macro.getName()))
       .filter(macro -> !macro.isDeferred())
@@ -272,7 +273,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       interpreter
         .getContext()
         .handleEagerToken(
-          buildEagerToken(
+          new EagerToken(
             new TagToken(
               image,
               // TODO this line number won't be accurate, currently doesn't matter.
@@ -280,8 +281,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
               interpreter.getPosition(),
               interpreter.getConfig().getTokenScannerSymbols()
             ),
-            deferredValuesToSet.keySet(),
-            interpreter
+            deferredValuesToSet.keySet()
           )
         );
     }
@@ -328,14 +328,17 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     if (StringUtils.isNotBlank(resolvedChunks)) {
       joiner.add(resolvedChunks);
     }
+    joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
+    String newlyDeferredFunctionImages = getNewlyDeferredFunctionImages(
+      chunkResolver.getDeferredWords(),
+      interpreter
+    );
+
     interpreter
       .getContext()
-      .handleEagerToken(
-        buildEagerToken(tagToken, chunkResolver.getDeferredWords(), interpreter)
-      );
+      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
 
-    joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
-    return joiner.toString();
+    return (newlyDeferredFunctionImages + joiner.toString());
   }
 
   public String getEagerExpressionImage(
@@ -345,11 +348,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     interpreter
       .getContext()
       .handleEagerToken(
-        buildEagerToken(
-          expressionToken,
-          Collections.singleton(expressionToken.getExpr()),
-          interpreter
-        )
+        new EagerToken(expressionToken, Collections.singleton(expressionToken.getExpr()))
       );
     return expressionToken.getImage();
   }
@@ -358,7 +357,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     interpreter
       .getContext()
       .handleEagerToken(
-        buildEagerToken(textToken, Collections.singleton(textToken.output()), interpreter)
+        new EagerToken(textToken, Collections.singleton(textToken.output()))
       );
     return textToken.getImage();
   }
@@ -373,7 +372,11 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     try {
       return tag.interpret(tagNode, interpreter);
     } catch (DeferredValueException e) {
-      return eagerInterpret(tagNode, interpreter);
+      if (interpreter.getConfig().isPreserveForFinalPass()) {
+        return eagerInterpret(tagNode, interpreter);
+      } else {
+        throw e;
+      }
     }
   }
 
@@ -398,25 +401,6 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       tagNode.getSymbols().getExpressionStartWithTag(),
       tagNode.getEndName(),
       tagNode.getSymbols().getExpressionEndWithTag()
-    );
-  }
-
-  public static EagerToken buildEagerToken(
-    Token token,
-    Set<String> deferredWords,
-    JinjavaInterpreter interpreter
-  ) {
-    return new EagerToken(
-      token,
-      deferredWords
-      //        .stream()
-      //        .filter(
-      //          w ->
-      //            !interpreter.getContext().containsKey(w) ||
-      //            // Don't add already deferred values (they may be temporary).
-      //            !(interpreter.getContext().get(w) instanceof DeferredValue)
-      //        )
-      //        .collect(Collectors.toSet())
     );
   }
 }

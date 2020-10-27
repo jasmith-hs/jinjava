@@ -20,7 +20,7 @@ public class IfTagTest {
 
   public Tag tag;
 
-  Jinjava jinjava;
+  public Jinjava jinjava;
   public Context context;
 
   @Before

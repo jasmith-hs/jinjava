@@ -3,6 +3,7 @@ package com.hubspot.jinjava.lib.tag.eager;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.hubspot.jinjava.ExpectedNodeInterpreter;
+import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.lib.tag.IfTagTest;
@@ -18,6 +19,12 @@ public class EagerIfTagTest extends IfTagTest {
   @Before
   public void setup() {
     super.setup();
+    interpreter =
+      new JinjavaInterpreter(
+        jinjava,
+        context,
+        JinjavaConfig.newBuilder().withPreserveForFinalPass(true).build()
+      );
     tag = new EagerIfTag();
     context.registerTag(tag);
     context.put("deferred", DeferredValue.instance());

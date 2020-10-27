@@ -1,10 +1,8 @@
 package com.hubspot.jinjava.lib.tag.eager;
 
-import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
 import com.hubspot.jinjava.lib.tag.ForTag;
-import com.hubspot.jinjava.tree.TagNode;
 import com.hubspot.jinjava.tree.parse.TagToken;
 import com.hubspot.jinjava.util.ChunkResolver;
 import com.hubspot.jinjava.util.HelperStringTokenizer;
@@ -24,15 +22,6 @@ public class EagerForTag extends EagerTagDecorator<ForTag> {
   }
 
   @Override
-  public String interpret(TagNode tagNode, JinjavaInterpreter interpreter) {
-    try {
-      return getTag().interpret(tagNode, interpreter);
-    } catch (DeferredValueException e) {
-      return eagerInterpret(tagNode, interpreter);
-    }
-  }
-
-  @Override
   public String getEagerTagImage(TagToken tagToken, JinjavaInterpreter interpreter) {
     List<String> helperTokens = new HelperStringTokenizer(
       ForTag.getWhitespaceAdjustedHelpers(tagToken.getHelpers())
@@ -48,25 +37,27 @@ public class EagerForTag extends EagerTagDecorator<ForTag> {
         tagToken.getStartPosition()
       );
     }
-    StringJoiner joiner = new StringJoiner(" ");
-    joiner
-      .add(tagToken.getSymbols().getExpressionStartWithTag())
-      .add(tagToken.getTagName());
-    joiner.add(String.join(", ", loopVars));
-    Set<String> deferredWords = new HashSet<>(loopVars);
-    joiner.add("in");
 
+    Set<String> deferredWords = new HashSet<>(loopVars);
     String loopExpression = getTag().getLoopExpression(helperTokens, loopVars);
     ChunkResolver chunkResolver = new ChunkResolver(loopExpression, tagToken, interpreter)
     .useMiniChunks(true);
-    joiner.add(chunkResolver.resolveChunks());
+
+    StringJoiner joiner = new StringJoiner(" ");
+    joiner
+      .add(tagToken.getSymbols().getExpressionStartWithTag())
+      .add(tagToken.getTagName())
+      .add(String.join(", ", loopVars))
+      .add("in")
+      .add(chunkResolver.resolveChunks())
+      .add(tagToken.getSymbols().getExpressionEndWithTag());
     deferredWords.addAll(chunkResolver.getDeferredWords());
+    String newlyDeferredFunctionImages = getNewlyDeferredFunctionImages(
+      deferredWords,
+      interpreter
+    );
 
-    interpreter
-      .getContext()
-      .handleEagerToken(buildEagerToken(tagToken, deferredWords, interpreter));
-    joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
-
-    return joiner.toString();
+    interpreter.getContext().handleEagerToken(new EagerToken(tagToken, deferredWords));
+    return (newlyDeferredFunctionImages + joiner.toString());
   }
 }

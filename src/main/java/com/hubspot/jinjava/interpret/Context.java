@@ -303,15 +303,6 @@ public class Context extends ScopeMap<String, Object> {
       if (parent.getParent() != null) {
         //Place deferred values on the parent context
         parent.handleEagerToken(eagerToken);
-        //        parent.handleEagerToken(
-        //          new EagerToken(
-        //            eagerToken.getToken(),
-        //            deferredProps
-        //              .stream()
-        //              .filter(key -> eagerToken.getDeferredWords().contains(key))
-        //              .collect(Collectors.toSet())
-        //          )
-        //        );
       }
     }
   }

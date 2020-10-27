@@ -26,13 +26,15 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class SetTagTest {
   public Tag tag;
+  public Jinjava jinjava;
 
   public Context context;
   public JinjavaInterpreter interpreter;
 
   @Before
   public void setup() {
-    interpreter = new JinjavaInterpreter(new Jinjava().newInterpreter());
+    jinjava = new Jinjava();
+    interpreter = new JinjavaInterpreter(jinjava.newInterpreter());
     context = interpreter.getContext();
     tag = new SetTag();
   }

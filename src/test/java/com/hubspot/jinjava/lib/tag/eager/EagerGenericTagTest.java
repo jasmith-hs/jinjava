@@ -2,6 +2,7 @@ package com.hubspot.jinjava.lib.tag.eager;
 
 import com.hubspot.jinjava.ExpectedNodeInterpreter;
 import com.hubspot.jinjava.Jinjava;
+import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.interpret.Context;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
@@ -14,13 +15,20 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class EagerGenericTagTest {
+  private Jinjava jinjava;
   private Context context;
   private JinjavaInterpreter interpreter;
   private EagerTagFactory eagerTagFactory;
 
   @Before
   public void setup() {
-    interpreter = new JinjavaInterpreter(new Jinjava().newInterpreter());
+    jinjava = new Jinjava();
+    interpreter =
+      new JinjavaInterpreter(
+        jinjava,
+        jinjava.getGlobalContextCopy(),
+        JinjavaConfig.newBuilder().withPreserveForFinalPass(true).build()
+      );
     context = interpreter.getContext();
     context.put("deferred", DeferredValue.instance());
     eagerTagFactory = new EagerTagFactory();

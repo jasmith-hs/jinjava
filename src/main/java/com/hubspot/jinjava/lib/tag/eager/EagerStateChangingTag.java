@@ -13,13 +13,11 @@ public class EagerStateChangingTag<T extends Tag> extends EagerTagDecorator<T> {
 
   @Override
   public String interpret(TagNode tagNode, JinjavaInterpreter interpreter) {
-    return eagerInterpret(tagNode, interpreter);
-    //    if (interpreter.getContext().isEagerMode()) {
-    //      // Preserve state-changing tags when eagerly executing nodes.
-    //      return eagerInterpret(tagNode, interpreter);
-    //    } else {
-    //      return super.interpret(tagNode, interpreter);
-    //    }
+    if (interpreter.getConfig().isPreserveForFinalPass()) {
+      return eagerInterpret(tagNode, interpreter);
+    } else {
+      return super.interpret(tagNode, interpreter);
+    }
   }
 
   @Override
@@ -27,6 +25,8 @@ public class EagerStateChangingTag<T extends Tag> extends EagerTagDecorator<T> {
     StringBuilder result = new StringBuilder(
       getEagerImage(tagNode.getMaster(), interpreter)
     );
+
+    // Currently always false
     if (!tagNode.getChildren().isEmpty()) {
       result.append(
         executeInChildContext(
@@ -37,6 +37,7 @@ public class EagerStateChangingTag<T extends Tag> extends EagerTagDecorator<T> {
       );
     }
 
+    // Currently always false
     if (StringUtils.isNotBlank(tagNode.getEndName())) {
       result.append(reconstructEnd(tagNode));
     }

@@ -1,5 +1,6 @@
 package com.hubspot.jinjava.lib.tag.eager;
 
+import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
@@ -34,10 +35,10 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
     }
 
     int eqPos = tagToken.getHelpers().indexOf('=');
-    String var = tagToken.getHelpers().substring(0, eqPos).trim();
+    String variables = tagToken.getHelpers().substring(0, eqPos).trim();
 
-    String expr = tagToken.getHelpers().substring(eqPos + 1);
-    ChunkResolver chunkResolver = new ChunkResolver(expr, tagToken, interpreter)
+    String expression = tagToken.getHelpers().substring(eqPos + 1);
+    ChunkResolver chunkResolver = new ChunkResolver(expression, tagToken, interpreter)
     .useMiniChunks(true);
     EagerStringResult resolvedExpression = executeInChildContext(
       eagerInterpreter -> chunkResolver.resolveChunks(),
@@ -48,42 +49,42 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
     joiner
       .add(tagToken.getSymbols().getExpressionStartWithTag())
       .add(tagToken.getTagName())
-      .add(var)
+      .add(variables)
       .add("=")
-      .add(resolvedExpression.getResult());
+      .add(resolvedExpression.getResult())
+      .add(tagToken.getSymbols().getExpressionEndWithTag());
     StringBuilder prefixToPreserveState = new StringBuilder(
       interpreter.getContext().isEagerMode()
         ? resolvedExpression.getPrefixToPreserveState()
         : ""
     );
     Set<String> deferredWords = new HashSet<>(chunkResolver.getDeferredWords());
-    String[] varTokens = var.split(",");
-    if (!deferredWords.isEmpty()) {
-      deferredWords.addAll(
-        Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
-      );
-      prefixToPreserveState.append(
-        getNewlyDeferredFunctionImages(deferredWords, interpreter)
-      );
-    } else {
+    String[] varTokens = variables.split(",");
+    deferredWords.addAll(
+      Arrays
+        .stream(varTokens)
+        .map(prop -> prop.split("\\.", 2)[0])
+        .filter(v -> interpreter.getContext().get(v) instanceof DeferredValue)
+        .collect(Collectors.toSet())
+    );
+    if (chunkResolver.getDeferredWords().isEmpty()) {
       try {
         getTag()
           .executeSet(tagToken, interpreter, varTokens, resolvedExpression.getResult());
-        // Possible set tag in front of this one.
+        // Possible macro/set tag in front of this one.
         return prefixToPreserveState.toString();
-      } catch (DeferredValueException e) {
-        deferredWords.addAll(
-          Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
-        );
-      }
+      } catch (DeferredValueException ignored) {}
     }
+    prefixToPreserveState.append(
+      getNewlyDeferredFunctionImages(deferredWords, interpreter)
+    );
+    // Defer all vars.
+    deferredWords.addAll(
+      Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
+    );
 
-    interpreter
-      .getContext()
-      .handleEagerToken(buildEagerToken(tagToken, deferredWords, interpreter));
-    joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
-
-    // Possible set tag in front of this one.
-    return prefixToPreserveState.append(joiner.toString()).toString();
+    interpreter.getContext().handleEagerToken(new EagerToken(tagToken, deferredWords));
+    // Possible macro/set tag in front of this one.
+    return prefixToPreserveState.toString() + joiner.toString();
   }
 }

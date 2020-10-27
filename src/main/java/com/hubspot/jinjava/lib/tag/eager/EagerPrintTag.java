@@ -30,14 +30,15 @@ public class EagerPrintTag extends EagerStateChangingTag<PrintTag> {
     joiner
       .add(tagToken.getSymbols().getExpressionStartWithTag())
       .add(tagToken.getTagName())
-      .add(resolvedExpression.getResult());
+      .add(resolvedExpression.getResult())
+      .add(tagToken.getSymbols().getExpressionEndWithTag());
     StringBuilder prefixToPreserveState = new StringBuilder(
       interpreter.getContext().isEagerMode()
         ? resolvedExpression.getPrefixToPreserveState()
         : ""
     );
     if (chunkResolver.getDeferredWords().isEmpty()) {
-      // Possible set tag in front of this one. Includes result
+      // Possible macro/set tag in front of this one. Includes result
       return prefixToPreserveState.toString() + resolvedExpression.getResult();
     }
     prefixToPreserveState.append(
@@ -45,10 +46,7 @@ public class EagerPrintTag extends EagerStateChangingTag<PrintTag> {
     );
     interpreter
       .getContext()
-      .handleEagerToken(
-        buildEagerToken(tagToken, chunkResolver.getDeferredWords(), interpreter)
-      );
-    joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
+      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
     // Possible set tag in front of this one.
     return prefixToPreserveState.toString() + joiner.toString();
   }

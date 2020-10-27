@@ -30,14 +30,15 @@ public class EagerDoTag extends EagerStateChangingTag<DoTag> {
     joiner
       .add(tagToken.getSymbols().getExpressionStartWithTag())
       .add(tagToken.getTagName())
-      .add(resolvedExpression.getResult());
+      .add(resolvedExpression.getResult())
+      .add(tagToken.getSymbols().getExpressionEndWithTag());
     StringBuilder prefixToPreserveState = new StringBuilder(
       interpreter.getContext().isEagerMode()
         ? resolvedExpression.getPrefixToPreserveState()
         : ""
     );
     if (chunkResolver.getDeferredWords().isEmpty()) {
-      // Possible set tag in front of this one. Omits result
+      // Possible macro/set tag in front of this one. Omits result
       return prefixToPreserveState.toString();
     }
     prefixToPreserveState.append(
@@ -45,10 +46,7 @@ public class EagerDoTag extends EagerStateChangingTag<DoTag> {
     );
     interpreter
       .getContext()
-      .handleEagerToken(
-        buildEagerToken(tagToken, chunkResolver.getDeferredWords(), interpreter)
-      );
-    joiner.add(tagToken.getSymbols().getExpressionEndWithTag());
+      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
     // Possible set tag in front of this one.
     return prefixToPreserveState.toString() + joiner.toString();
   }
