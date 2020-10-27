@@ -10,6 +10,7 @@ import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.DisabledException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter.InterpreterScopeClosable;
+import com.hubspot.jinjava.lib.fn.eager.EagerMacroFunction;
 import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.lib.tag.Tag;
 import com.hubspot.jinjava.tree.Node;
@@ -214,7 +215,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       .map(w -> interpreter.getContext().getGlobalMacro(w))
       .filter(Objects::nonNull)
       .peek(macro -> toRemove.add(macro.getName()))
-      .filter(macro -> !macro.isDeferred())
+      //      .filter(macro -> !macro.isDeferred())
       .peek(
         macro -> {
           macro.setDeferred(true);
@@ -224,20 +225,8 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       .map(
         macro ->
           executeInChildContext(
-            eagerInterpreter -> {
-              try {
-                return (String) macro.evaluate(
-                  macro
-                    .getArguments()
-                    .stream()
-                    .map(arg -> DeferredValue.instance())
-                    .toArray()
-                );
-              } catch (DeferredValueException e) {
-                // TODO eager reconstruct;
-                return macro.reconstructImage();
-              }
-            },
+            eagerInterpreter ->
+              new EagerMacroFunction(macro, interpreter).reconstructImage(),
             interpreter,
             false
           )

@@ -163,7 +163,7 @@ public class EagerTest {
     StringBuilder expected = new StringBuilder();
     for (String item : (Set<String>) localContext.get("dict")) {
       expected
-        .append(String.format("{%% if '%s' == deferred %%}", item))
+        .append(String.format("{%% if \"%s\" == deferred %%}", item))
         .append(" equal {% else %} not equal {% endif %}");
     }
     assertThat(output).isEqualTo(expected.toString());
@@ -179,7 +179,7 @@ public class EagerTest {
     StringBuilder expected = new StringBuilder();
     for (String item : (Set<String>) localContext.get("dict")) {
       if (item.equals("a")) {
-        expected.append(" equal {% if 'a' == deferred %}{% endif %}");
+        expected.append(" equal {% if \"a\" == deferred %}{% endif %}");
       } else {
         expected.append(" not equal ");
       }
@@ -199,7 +199,7 @@ public class EagerTest {
     for (String item : (Set<String>) localContext.get("dict")) {
       for (String item2 : (Set<String>) localContext.get("dict2")) {
         if (item2.equals("e")) {
-          expected.append(" equal {% if 'e' == deferred %}{% endif %}");
+          expected.append(" equal {% if \"e\" == deferred %}{% endif %}");
         } else {
           expected.append(" not equal ");
         }
@@ -310,7 +310,7 @@ public class EagerTest {
     localContext.put("deferred", DeferredValue.instance("testvalue"));
     String output = interpreter.render(template);
     assertThat(output.trim())
-      .isEqualTo("{% if deferred == 'testvalue' %} true {% else %} false {% endif %}");
+      .isEqualTo("{% if deferred == \"testvalue\" %} true {% else %} false {% endif %}");
 
     HashMap<String, Object> deferredContext = DeferredValueUtils.getDeferredContextWithOriginalValues(
       localContext
@@ -466,6 +466,7 @@ public class EagerTest {
   public void itHandlesLoopVarAgainstDeferredInLoopSecondPass() {
     localContext.put("deferred", "resolved");
     assertExpectedOutput("handles-loop-var-against-deferred-in-loop.expected");
+    assertExpectedNonEagerOutput("handles-loop-var-against-deferred-in-loop.expected");
   }
 
   @Test
@@ -491,7 +492,7 @@ public class EagerTest {
 
     String output = interpreter.render(deferredOutput);
     assertThat(output.replace("\n", ""))
-      .isEqualTo("Is ([]),'Macro: [10]'Is ([10]),Is ([10, 5]),'Macro: [10, 5, 10]'");
+      .isEqualTo("Is ([]),Macro: [10]Is ([10]),Is ([10, 5]),Macro: [10, 5, 10]");
   }
 
   @Test
@@ -520,13 +521,36 @@ public class EagerTest {
   }
 
   @Test
+  public void itEagerlyDefersMacroSecondPass() {
+    localContext.put("deferred", true);
+    assertExpectedOutput("eagerly-defers-macro.expected");
+    assertExpectedNonEagerOutput("eagerly-defers-macro.expected");
+  }
+
+  @Test
   public void itEagerlyDefersFrom() {}
 
   public String assertExpectedOutput(String name) {
     String template = getFixtureTemplate(name);
-    String output = interpreter.render(template);
+    String output = JinjavaInterpreter.getCurrent().render(template);
     assertThat(output.trim()).isEqualTo(expected(name).trim());
     return output;
+  }
+
+  public String assertExpectedNonEagerOutput(String name) {
+    JinjavaInterpreter preserveInterpreter = new JinjavaInterpreter(
+      jinjava,
+      jinjava.getGlobalContextCopy(),
+      JinjavaConfig.newBuilder().withPreserveForFinalPass(false).build()
+    );
+    try {
+      JinjavaInterpreter.pushCurrent(preserveInterpreter);
+
+      preserveInterpreter.getContext().putAll(interpreter.getContext());
+      return assertExpectedOutput(name);
+    } finally {
+      JinjavaInterpreter.popCurrent();
+    }
   }
 
   public String getFixtureTemplate(String name) {

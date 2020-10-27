@@ -4,6 +4,7 @@ import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.lib.tag.PrintTag;
 import com.hubspot.jinjava.tree.parse.TagToken;
 import com.hubspot.jinjava.util.ChunkResolver;
+import com.hubspot.jinjava.util.WhitespaceUtils;
 import java.util.StringJoiner;
 
 public class EagerPrintTag extends EagerStateChangingTag<PrintTag> {
@@ -39,7 +40,10 @@ public class EagerPrintTag extends EagerStateChangingTag<PrintTag> {
     );
     if (chunkResolver.getDeferredWords().isEmpty()) {
       // Possible macro/set tag in front of this one. Includes result
-      return prefixToPreserveState.toString() + resolvedExpression.getResult();
+      return (
+        prefixToPreserveState.toString() +
+        WhitespaceUtils.unquote(resolvedExpression.getResult())
+      );
     }
     prefixToPreserveState.append(
       getNewlyDeferredFunctionImages(chunkResolver.getDeferredWords(), interpreter)

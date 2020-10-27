@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
@@ -216,11 +217,7 @@ public class ChunkResolver {
         if (val == null) {
           resolvedToken = token;
         } else {
-          if (val instanceof String) {
-            resolvedToken = String.format("'%s'", val);
-          } else {
-            return OBJECT_MAPPER.writeValueAsString(val);
-          }
+          resolvedToken = getValueAsJinjavaString(val);
         }
       }
       return resolvedToken.trim();
@@ -254,13 +251,13 @@ public class ChunkResolver {
 
   public static String getValueAsJinjavaString(Object val)
     throws JsonProcessingException {
-    String resolvedChunk;
-    if (val instanceof String) {
-      resolvedChunk = String.format("'%s'", val);
-    } else {
-      resolvedChunk = OBJECT_MAPPER.writeValueAsString(val);
-    }
-    return resolvedChunk;
+    //    if (val instanceof String) {
+    //      return Pattern.quote((String) val);
+    //    }
+    return OBJECT_MAPPER
+      .writeValueAsString(val)
+      .replaceAll("(?<!\\\\)(?:\\\\\\\\)*(\\\\n)", "\n");
+    //      .replaceAll("(?<!\\\\)(?:\\\\\\\\)*\\\\(n|r|t|\\|b|f|\")", "\\\\$1");
   }
 
   // Find any variables, functions, etc in this chunk to mark as deferred.

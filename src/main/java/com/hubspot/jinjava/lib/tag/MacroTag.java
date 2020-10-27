@@ -56,7 +56,7 @@ public class MacroTag implements Tag {
 
   private static final long serialVersionUID = 8397609322126956077L;
 
-  private static final Pattern MACRO_PATTERN = Pattern.compile(
+  public static final Pattern MACRO_PATTERN = Pattern.compile(
     "([a-zA-Z_][\\w_]*)[^(]*\\(([^)]*)\\)"
   );
   private static final Splitter ARGS_SPLITTER = Splitter
@@ -91,39 +91,12 @@ public class MacroTag implements Tag {
 
     LinkedHashMap<String, Object> argNamesWithDefaults = new LinkedHashMap<>();
 
-    List<String> argList = Lists.newArrayList(ARGS_SPLITTER.split(args));
-    boolean deferred = false;
-    for (int i = 0; i < argList.size(); i++) {
-      String arg = argList.get(i);
-
-      if (arg.contains("=")) {
-        String argName = StringUtils.substringBefore(arg, "=").trim();
-        StringBuilder argValStr = new StringBuilder(
-          StringUtils.substringAfter(arg, "=").trim()
-        );
-
-        if (
-          StringUtils.startsWith(argValStr, "[") && !StringUtils.endsWith(argValStr, "]")
-        ) {
-          while (i + 1 < argList.size() && !StringUtils.endsWith(argValStr, "]")) {
-            argValStr.append(", ").append(argList.get(i + 1));
-            i++;
-          }
-        }
-
-        try {
-          Object argVal = interpreter.resolveELExpression(
-            argValStr.toString(),
-            tagNode.getLineNumber()
-          );
-          argNamesWithDefaults.put(argName, argVal);
-        } catch (DeferredValueException e) {
-          deferred = true;
-        }
-      } else {
-        argNamesWithDefaults.put(arg, null);
-      }
-    }
+    boolean deferred = populateArgNames(
+      tagNode.getLineNumber(),
+      interpreter,
+      args,
+      argNamesWithDefaults
+    );
 
     MacroFunction macro = new MacroFunction(
       tagNode.getChildren(),
@@ -147,5 +120,47 @@ public class MacroTag implements Tag {
     }
 
     return "";
+  }
+
+  public static boolean populateArgNames(
+    int lineNumber,
+    JinjavaInterpreter interpreter,
+    String args,
+    LinkedHashMap<String, Object> argNamesWithDefaults
+  ) {
+    List<String> argList = Lists.newArrayList(ARGS_SPLITTER.split(args));
+    boolean deferred = false;
+    for (int i = 0; i < argList.size(); i++) {
+      String arg = argList.get(i);
+
+      if (arg.contains("=")) {
+        String argName = StringUtils.substringBefore(arg, "=").trim();
+        StringBuilder argValStr = new StringBuilder(
+          StringUtils.substringAfter(arg, "=").trim()
+        );
+
+        if (
+          StringUtils.startsWith(argValStr, "[") && !StringUtils.endsWith(argValStr, "]")
+        ) {
+          while (i + 1 < argList.size() && !StringUtils.endsWith(argValStr, "]")) {
+            argValStr.append(", ").append(argList.get(i + 1));
+            i++;
+          }
+        }
+
+        try {
+          Object argVal = interpreter.resolveELExpression(
+            argValStr.toString(),
+            lineNumber
+          );
+          argNamesWithDefaults.put(argName, argVal);
+        } catch (DeferredValueException e) {
+          deferred = true;
+        }
+      } else {
+        argNamesWithDefaults.put(arg, null);
+      }
+    }
+    return deferred;
   }
 }

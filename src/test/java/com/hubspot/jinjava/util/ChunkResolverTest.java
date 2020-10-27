@@ -65,7 +65,7 @@ public class ChunkResolverTest {
     context.put("foo", "foo_val");
     ChunkResolver chunkResolver = makeChunkResolver("(111 == 112) || (foo == deferred)");
     String partiallyResolved = chunkResolver.resolveChunks();
-    assertThat(partiallyResolved).isEqualTo("false || ('foo_val' == deferred)");
+    assertThat(partiallyResolved).isEqualTo("false || (\"foo_val\" == deferred)");
     assertThat(chunkResolver.getDeferredWords()).containsExactly("deferred");
 
     context.put("deferred", "foo_val");
@@ -78,10 +78,10 @@ public class ChunkResolverTest {
     context.put("foo", "foo_val");
     context.put("bar", "bar_val");
     ChunkResolver chunkResolver = makeChunkResolver("[foo == bar, deferred, bar]");
-    assertThat(chunkResolver.resolveChunks()).isEqualTo("[false,deferred,'bar_val']");
+    assertThat(chunkResolver.resolveChunks()).isEqualTo("[false,deferred,\"bar_val\"]");
     assertThat(chunkResolver.getDeferredWords()).containsExactlyInAnyOrder("deferred");
     context.put("bar", "foo_val");
-    assertThat(chunkResolver.resolveChunks()).isEqualTo("[true,deferred,'foo_val']");
+    assertThat(chunkResolver.resolveChunks()).isEqualTo("[true,deferred,\"foo_val\"]");
   }
 
   @Test
@@ -89,7 +89,7 @@ public class ChunkResolverTest {
     context.put("foo", true);
     ChunkResolver chunkResolver = makeChunkResolver("false || (foo), 'bar'");
     String partiallyResolved = chunkResolver.resolveChunks();
-    assertThat(partiallyResolved).isEqualTo("true,'bar'");
+    assertThat(partiallyResolved).isEqualTo("true,\"bar\"");
     assertThat(chunkResolver.getDeferredWords()).isEmpty();
   }
 

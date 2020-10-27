@@ -1,6 +1,5 @@
 package com.hubspot.jinjava.lib.tag.eager;
 
-import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
@@ -8,8 +7,6 @@ import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.tree.parse.TagToken;
 import com.hubspot.jinjava.util.ChunkResolver;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 

@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import com.hubspot.jinjava.lib.tag.DoTag;
 import com.hubspot.jinjava.lib.tag.ForTag;
 import com.hubspot.jinjava.lib.tag.IfTag;
+import com.hubspot.jinjava.lib.tag.MacroTag;
 import com.hubspot.jinjava.lib.tag.PrintTag;
 import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.lib.tag.Tag;
