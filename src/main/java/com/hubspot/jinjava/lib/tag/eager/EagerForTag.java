@@ -8,7 +8,6 @@ import com.hubspot.jinjava.util.ChunkResolver;
 import com.hubspot.jinjava.util.HelperStringTokenizer;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.StringJoiner;
 
 public class EagerForTag extends EagerTagDecorator<ForTag> {

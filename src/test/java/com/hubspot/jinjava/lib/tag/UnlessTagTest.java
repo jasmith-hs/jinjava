@@ -14,14 +14,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class UnlessTagTest {
-  JinjavaInterpreter interpreter;
-  UnlessTag tag;
+  protected Jinjava jinjava;
+  protected JinjavaInterpreter interpreter;
+  protected Tag tag;
 
-  Context context;
+  protected Context context;
 
   @Before
   public void setup() {
-    interpreter = new Jinjava().newInterpreter();
+    jinjava = new Jinjava();
+    interpreter = jinjava.newInterpreter();
     context = interpreter.getContext();
 
     tag = new UnlessTag();

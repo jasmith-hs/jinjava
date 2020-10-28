@@ -5,10 +5,10 @@ import com.google.common.collect.ImmutableMap;
 import com.hubspot.jinjava.lib.tag.DoTag;
 import com.hubspot.jinjava.lib.tag.ForTag;
 import com.hubspot.jinjava.lib.tag.IfTag;
-import com.hubspot.jinjava.lib.tag.MacroTag;
 import com.hubspot.jinjava.lib.tag.PrintTag;
 import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.lib.tag.Tag;
+import com.hubspot.jinjava.lib.tag.UnlessTag;
 import java.util.Map;
 import java.util.Optional;
 
@@ -18,6 +18,7 @@ public class EagerTagFactory {
     .put(DoTag.class, EagerDoTag.class)
     .put(ForTag.class, EagerForTag.class)
     .put(IfTag.class, EagerIfTag.class)
+    .put(UnlessTag.class, EagerUnlessTag.class)
     .put(PrintTag.class, EagerPrintTag.class)
     .put(SetTag.class, EagerSetTag.class)
     .build();

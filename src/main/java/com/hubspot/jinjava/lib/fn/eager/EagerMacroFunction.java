@@ -1,8 +1,5 @@
 package com.hubspot.jinjava.lib.fn.eager;
 
-import static com.hubspot.jinjava.interpret.Context.GLOBAL_MACROS_SCOPE_KEY;
-import static com.hubspot.jinjava.interpret.Context.IMPORT_RESOURCE_PATH_KEY;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.hubspot.jinjava.el.ext.AbstractCallableMethod;
 import com.hubspot.jinjava.interpret.DeferredValue;
