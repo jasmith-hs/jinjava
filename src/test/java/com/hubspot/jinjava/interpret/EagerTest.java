@@ -540,6 +540,13 @@ public class EagerTest {
   }
 
   @Test
+  public void itPutsDeferredImportedMacroInOutputSecondPass() {
+    localContext.put("deferred", 1);
+    assertExpectedOutput("puts-deferred-imported-macro-in-output.expected");
+    assertExpectedNonEagerOutput("puts-deferred-imported-macro-in-output.expected");
+  }
+
+  @Test
   public void itPutsDeferredFromedMacroInOutput() {
     assertExpectedOutput("puts-deferred-fromed-macro-in-output");
   }

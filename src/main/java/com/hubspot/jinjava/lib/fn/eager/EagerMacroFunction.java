@@ -16,14 +16,20 @@ import java.util.Optional;
 import java.util.StringJoiner;
 
 public class EagerMacroFunction extends AbstractCallableMethod {
+  private String fullName;
   private MacroFunction macroFunction;
   private JinjavaInterpreter interpreter;
 
-  public EagerMacroFunction(MacroFunction macroFunction, JinjavaInterpreter interpreter) {
+  public EagerMacroFunction(
+    String fullName,
+    MacroFunction macroFunction,
+    JinjavaInterpreter interpreter
+  ) {
     super(
       macroFunction.getName(),
       getLinkedHashmap(macroFunction.getArguments(), macroFunction.getDefaults())
     );
+    this.fullName = fullName;
     this.macroFunction = macroFunction;
     this.interpreter = interpreter;
   }
@@ -72,7 +78,7 @@ public class EagerMacroFunction extends AbstractCallableMethod {
     return new StringJoiner(" ")
       .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag())
       .add(MacroTag.TAG_NAME)
-      .add(String.format("%s(%s)", macroFunction.getName(), argJoiner.toString()))
+      .add(String.format("%s(%s)", fullName, argJoiner.toString()))
       .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag())
       .toString();
   }

@@ -4,12 +4,14 @@ import static com.hubspot.jinjava.interpret.Context.GLOBAL_MACROS_SCOPE_KEY;
 import static com.hubspot.jinjava.interpret.Context.IMPORT_RESOURCE_PATH_KEY;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.hubspot.jinjava.el.ext.AbstractCallableMethod;
 import com.hubspot.jinjava.interpret.Context.Library;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.DisabledException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter.InterpreterScopeClosable;
+import com.hubspot.jinjava.lib.fn.MacroFunction;
 import com.hubspot.jinjava.lib.fn.eager.EagerMacroFunction;
 import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.lib.tag.Tag;
@@ -209,24 +211,32 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     JinjavaInterpreter interpreter
   ) {
     Set<String> toRemove = new HashSet<>();
-    String result = deferredWords
+    Map<String, MacroFunction> macroFunctions = deferredWords
       .stream()
       .filter(w -> !interpreter.getContext().containsKey(w))
       .map(w -> interpreter.getContext().getGlobalMacro(w))
       .filter(Objects::nonNull)
-      .peek(macro -> toRemove.add(macro.getName()))
-      //      .filter(macro -> !macro.isDeferred())
-      .peek(
-        macro -> {
-          macro.setDeferred(true);
-          interpreter.getContext().addGlobalMacro(macro);
-        }
-      )
+      .collect(Collectors.toMap(AbstractCallableMethod::getName, Function.identity()));
+    for (String word : deferredWords) {
+      if (word.contains(".")) {
+        interpreter
+          .getContext()
+          .getLocalMacro(word)
+          .ifPresent(macroFunction -> macroFunctions.put(word, macroFunction));
+      }
+    }
+
+    String result = macroFunctions
+      .entrySet()
+      .stream()
+      .peek(entry -> toRemove.add(entry.getKey()))
+      .peek(entry -> entry.getValue().setDeferred(true))
       .map(
-        macro ->
+        entry ->
           executeInChildContext(
             eagerInterpreter ->
-              new EagerMacroFunction(macro, interpreter).reconstructImage(),
+              new EagerMacroFunction(entry.getKey(), entry.getValue(), interpreter)
+              .reconstructImage(),
             interpreter,
             false
           )
