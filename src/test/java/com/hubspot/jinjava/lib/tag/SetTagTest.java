@@ -6,11 +6,8 @@ import static org.assertj.core.api.Assertions.entry;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
-import com.hubspot.jinjava.Jinjava;
-import com.hubspot.jinjava.interpret.Context;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.DeferredValueException;
-import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
 import com.hubspot.jinjava.tree.Node;
 import com.hubspot.jinjava.tree.TagNode;
@@ -24,18 +21,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 @SuppressWarnings("unchecked")
-public class SetTagTest {
+public class SetTagTest extends BaseTagTest {
   public Tag tag;
-  public Jinjava jinjava;
-
-  public Context context;
-  public JinjavaInterpreter interpreter;
 
   @Before
   public void setup() {
-    jinjava = new Jinjava();
-    interpreter = new JinjavaInterpreter(jinjava.newInterpreter());
-    context = interpreter.getContext();
     tag = new SetTag();
   }
 

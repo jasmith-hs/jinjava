@@ -15,8 +15,7 @@ public class EagerDoTagTest extends DoTagTest {
   private ExpectedNodeInterpreter expectedNodeInterpreter;
 
   @Before
-  public void setup() {
-    super.setup();
+  public void eagerSetup() {
     interpreter =
       new JinjavaInterpreter(
         jinjava,

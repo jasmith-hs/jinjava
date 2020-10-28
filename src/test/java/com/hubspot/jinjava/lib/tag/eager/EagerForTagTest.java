@@ -18,8 +18,7 @@ public class EagerForTagTest extends ForTagTest {
   private ExpectedNodeInterpreter expectedNodeInterpreter;
 
   @Before
-  public void setup() {
-    super.setup();
+  public void eagerSetup() {
     interpreter =
       new JinjavaInterpreter(
         jinjava,

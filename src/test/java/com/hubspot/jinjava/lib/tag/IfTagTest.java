@@ -4,8 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
-import com.hubspot.jinjava.Jinjava;
-import com.hubspot.jinjava.interpret.Context;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.tree.TagNode;
 import com.hubspot.jinjava.tree.TreeParser;
@@ -15,19 +13,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class IfTagTest {
-  public JinjavaInterpreter interpreter;
-
+public class IfTagTest extends BaseTagTest {
   public Tag tag;
-
-  public Jinjava jinjava;
-  public Context context;
 
   @Before
   public void setup() {
-    jinjava = new Jinjava();
-    interpreter = new JinjavaInterpreter(jinjava.newInterpreter());
-    context = interpreter.getContext();
     tag = new IfTag();
     JinjavaInterpreter.pushCurrent(interpreter);
   }
