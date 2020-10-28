@@ -11,6 +11,7 @@ import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
 import com.hubspot.jinjava.lib.fn.MacroFunction;
 import com.hubspot.jinjava.tree.TagNode;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -56,6 +57,10 @@ public class MacroTag implements Tag {
 
   private static final long serialVersionUID = 8397609322126956077L;
 
+  public static final Pattern CHILD_MACRO_PATTERN = Pattern.compile(
+    "([a-zA-Z_][\\w_]*)\\.([a-zA-Z_][\\w_]*)[^(]*\\(([^)]*)\\)"
+  );
+
   public static final Pattern MACRO_PATTERN = Pattern.compile(
     "([a-zA-Z_][\\w_]*)[^(]*\\(([^)]*)\\)"
   );
@@ -75,19 +80,30 @@ public class MacroTag implements Tag {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public String interpret(TagNode tagNode, JinjavaInterpreter interpreter) {
-    Matcher matcher = MACRO_PATTERN.matcher(tagNode.getHelpers());
-    if (!matcher.find()) {
-      throw new TemplateSyntaxException(
-        tagNode.getMaster().getImage(),
-        "Unable to parse macro definition: " + tagNode.getHelpers(),
-        tagNode.getLineNumber(),
-        tagNode.getStartPosition()
-      );
-    }
+    String name;
+    String args;
+    String parentName = "";
+    Matcher childMatcher = CHILD_MACRO_PATTERN.matcher(tagNode.getHelpers());
+    if (childMatcher.find()) {
+      parentName = childMatcher.group(1);
+      name = childMatcher.group(2);
+      args = Strings.nullToEmpty(childMatcher.group(3));
+    } else {
+      Matcher matcher = MACRO_PATTERN.matcher(tagNode.getHelpers());
+      if (!matcher.find()) {
+        throw new TemplateSyntaxException(
+          tagNode.getMaster().getImage(),
+          "Unable to parse macro definition: " + tagNode.getHelpers(),
+          tagNode.getLineNumber(),
+          tagNode.getStartPosition()
+        );
+      }
 
-    String name = matcher.group(1);
-    String args = Strings.nullToEmpty(matcher.group(2));
+      name = matcher.group(1);
+      args = Strings.nullToEmpty(matcher.group(2));
+    }
 
     LinkedHashMap<String, Object> argNamesWithDefaults = new LinkedHashMap<>();
 
@@ -109,7 +125,26 @@ public class MacroTag implements Tag {
     );
     macro.setDeferred(deferred);
 
-    interpreter.getContext().addGlobalMacro(macro);
+    if (StringUtils.isNotEmpty(parentName)) {
+      try {
+        HashMap<String, Object> macroOfParent = (HashMap<String, Object>) interpreter
+          .getContext()
+          .getOrDefault(parentName, new HashMap<>());
+        macroOfParent.put(macro.getName(), macro);
+        if (!interpreter.getContext().containsKey(parentName)) {
+          interpreter.getContext().put(parentName, macroOfParent);
+        }
+      } catch (ClassCastException e) {
+        throw new TemplateSyntaxException(
+          tagNode.getMaster().getImage(),
+          "Unable to parse macro as a child of: " + parentName,
+          tagNode.getLineNumber(),
+          tagNode.getStartPosition()
+        );
+      }
+    } else {
+      interpreter.getContext().addGlobalMacro(macro);
+    }
 
     if (deferred) {
       throw new DeferredValueException(

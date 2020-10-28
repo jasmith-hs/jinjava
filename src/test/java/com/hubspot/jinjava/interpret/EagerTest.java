@@ -10,10 +10,14 @@ import com.google.common.io.Resources;
 import com.hubspot.jinjava.Jinjava;
 import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
+import com.hubspot.jinjava.loader.LocationResolver;
+import com.hubspot.jinjava.loader.RelativePathResolver;
+import com.hubspot.jinjava.loader.ResourceLocator;
 import com.hubspot.jinjava.objects.collections.PyList;
 import com.hubspot.jinjava.random.RandomNumberGeneratorStrategy;
 import com.hubspot.jinjava.util.DeferredValueUtils;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +36,29 @@ public class EagerTest {
 
   @Before
   public void setup() {
+    jinjava.setResourceLocator(
+      new ResourceLocator() {
+        private RelativePathResolver relativePathResolver = new RelativePathResolver();
+
+        @Override
+        public String getString(
+          String fullName,
+          Charset encoding,
+          JinjavaInterpreter interpreter
+        )
+          throws IOException {
+          return Resources.toString(
+            Resources.getResource(String.format("tags/macrotag/%s", fullName)),
+            StandardCharsets.UTF_8
+          );
+        }
+
+        @Override
+        public Optional<LocationResolver> getLocationResolver() {
+          return Optional.of(relativePathResolver);
+        }
+      }
+    );
     JinjavaConfig config = JinjavaConfig
       .newBuilder()
       .withRandomNumberGeneratorStrategy(RandomNumberGeneratorStrategy.DEFERRED)
@@ -508,6 +535,16 @@ public class EagerTest {
   }
 
   @Test
+  public void itPutsDeferredImportedMacroInOutput() {
+    assertExpectedOutput("puts-deferred-imported-macro-in-output");
+  }
+
+  @Test
+  public void itPutsDeferredFromedMacroInOutput() {
+    assertExpectedOutput("puts-deferred-fromed-macro-in-output");
+  }
+
+  @Test
   public void itHandlesEagerPrintAndDo() {}
 
   @Test
@@ -525,6 +562,11 @@ public class EagerTest {
     localContext.put("deferred", true);
     assertExpectedOutput("eagerly-defers-macro.expected");
     assertExpectedNonEagerOutput("eagerly-defers-macro.expected");
+  }
+
+  @Test
+  public void itLoadsImportedMacroSyntax() {
+    assertExpectedOutput("loads-imported-macro-syntax");
   }
 
   @Test
