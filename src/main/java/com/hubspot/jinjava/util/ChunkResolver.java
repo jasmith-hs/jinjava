@@ -2,12 +2,15 @@ package com.hubspot.jinjava.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.UnknownTokenException;
-import com.hubspot.jinjava.tree.parse.TagToken;
+import com.hubspot.jinjava.objects.date.JsonPyishDateSerializer;
+import com.hubspot.jinjava.objects.date.PyishDate;
+import com.hubspot.jinjava.tree.parse.Token;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -24,7 +27,11 @@ import org.apache.commons.lang3.StringUtils;
  * This class is not thread-safe. Do not reuse between threads.
  */
 public class ChunkResolver {
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+  .registerModule(
+      new SimpleModule().addSerializer(PyishDate.class, new JsonPyishDateSerializer())
+    );
+
   private static final Set<String> RESERVED_KEYWORDS = ImmutableSet.of(
     "and",
     "block",
@@ -73,7 +80,7 @@ public class ChunkResolver {
 
   private final char[] value;
   private final int length;
-  private final TagToken tagToken;
+  private final Token token;
   private final JinjavaInterpreter interpreter;
   private final Set<String> deferredWords;
 
@@ -83,10 +90,10 @@ public class ChunkResolver {
   private boolean inQuote = false;
   private char quoteChar = 0;
 
-  public ChunkResolver(String s, TagToken tagToken, JinjavaInterpreter interpreter) {
+  public ChunkResolver(String s, Token token, JinjavaInterpreter interpreter) {
     value = s.toCharArray();
     length = value.length;
-    this.tagToken = tagToken;
+    this.token = token;
     this.interpreter = interpreter;
     deferredWords = new HashSet<>();
   }
@@ -124,7 +131,15 @@ public class ChunkResolver {
    */
   public String resolveChunks() {
     nextPos = 0;
-    return getChunk(null);
+    boolean isHideInterpreterErrorsStart = interpreter
+      .getContext()
+      .isHideInterpreterErrors();
+    try {
+      interpreter.getContext().setHideInterpreterErrors(true);
+      return getChunk(null);
+    } finally {
+      interpreter.getContext().setHideInterpreterErrors(isHideInterpreterErrorsStart);
+    }
   }
 
   /**
@@ -183,7 +198,7 @@ public class ChunkResolver {
   }
 
   private boolean isTokenSplitter(char c) {
-    return !(Character.isLetterOrDigit(c) || c == '_' || c == '.');
+    return (!Character.isLetterOrDigit(c) && c != '_' && c != '.');
   }
 
   private boolean isMiniChunkSplitter(char c) {
@@ -201,12 +216,12 @@ public class ChunkResolver {
       } else {
         Object val = interpreter.retraceVariable(
           token,
-          tagToken.getLineNumber(),
-          tagToken.getStartPosition()
+          this.token.getLineNumber(),
+          this.token.getStartPosition()
         );
         if (val == null) {
           try {
-            val = interpreter.resolveELExpression(token, tagToken.getLineNumber());
+            val = interpreter.resolveELExpression(token, this.token.getLineNumber());
           } catch (UnknownTokenException e) {
             // val is still null
           }
@@ -233,7 +248,7 @@ public class ChunkResolver {
     }
     try {
       String resolvedChunk;
-      Object val = interpreter.resolveELExpression(chunk, tagToken.getLineNumber());
+      Object val = interpreter.resolveELExpression(chunk, token.getLineNumber());
       if (val == null) {
         resolvedChunk = chunk;
       } else {
@@ -250,7 +265,9 @@ public class ChunkResolver {
     throws JsonProcessingException {
     return OBJECT_MAPPER
       .writeValueAsString(val)
-      .replaceAll("(?<!\\\\)(?:\\\\\\\\)*(\\\\n)", "\n");
+      .replaceAll("(?<!\\\\)(?:\\\\\\\\)*(\\\\n)", "\n")
+      .replaceAll("(?<!\\\\)(?:\\\\\\\\)*(\")", "'")
+      .replaceAll("(?<!\\\\)(?:\\\\\\\\)*(\\\\\")", "\"");
   }
 
   // Find any variables, functions, etc in this chunk to mark as deferred.
@@ -298,8 +315,8 @@ public class ChunkResolver {
             try {
               Object val = interpreter.retraceVariable(
                 w,
-                tagToken.getLineNumber(),
-                tagToken.getStartPosition()
+                token.getLineNumber(),
+                token.getStartPosition()
               );
               if (val != null) {
                 // It's a variable that must now be deferred
@@ -309,7 +326,7 @@ public class ChunkResolver {
               // val is still null
             }
             // don't defer numbers, values such as true/false, etc.
-            return interpreter.resolveELExpression(w, tagToken.getLineNumber()) == null;
+            return interpreter.resolveELExpression(w, token.getLineNumber()) == null;
           } catch (DeferredValueException e) {
             return true;
           }

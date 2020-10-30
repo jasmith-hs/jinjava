@@ -44,6 +44,7 @@ public class EagerIfTagTest extends IfTagTest {
     Optional<EagerToken> maybeEagerTagToken = context
       .getEagerTokens()
       .stream()
+      .filter(e -> e.getToken() instanceof TagToken)
       .filter(e -> ((TagToken) e.getToken()).getTagName().equals(tag.getName()))
       .findAny();
     assertThat(maybeEagerTagToken).isEmpty();
@@ -56,6 +57,7 @@ public class EagerIfTagTest extends IfTagTest {
     Optional<EagerToken> maybeEagerTagToken = context
       .getEagerTokens()
       .stream()
+      .filter(e -> e.getToken() instanceof TagToken)
       .filter(e -> ((TagToken) e.getToken()).getTagName().equals(tag.getName()))
       .findAny();
     assertThat(maybeEagerTagToken).isPresent();

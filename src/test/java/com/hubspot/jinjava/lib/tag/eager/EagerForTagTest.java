@@ -59,6 +59,7 @@ public class EagerForTagTest extends ForTagTest {
     Optional<EagerToken> maybeEagerToken = context
       .getEagerTokens()
       .stream()
+      .filter(e -> e.getToken() instanceof TagToken)
       .filter(e -> ((TagToken) e.getToken()).getTagName().equals(tag.getName()))
       .findAny();
     assertThat(maybeEagerToken).isPresent();

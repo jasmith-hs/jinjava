@@ -87,7 +87,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
    * @return The combined string results of <code>declareEnabledFunction</code> and
    *   <code>function</code>
    */
-  public EagerStringResult executeInChildContext(
+  public static EagerStringResult executeInChildContext(
     Function<JinjavaInterpreter, String> function,
     JinjavaInterpreter interpreter,
     boolean takeNewValue
@@ -122,7 +122,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
    *  <code>prefixToPreserveState</code> is either blank or a <code>set</code> tag
    *    that preserves the state within the output for a second rendering pass.
    */
-  public EagerStringResult executeInChildContext(
+  public static EagerStringResult executeInChildContext(
     Function<JinjavaInterpreter, String> declareEnabledFunction,
     Function<JinjavaInterpreter, String> declareDisabledFunction,
     JinjavaInterpreter interpreter,
@@ -206,7 +206,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     return new EagerStringResult(result.toString());
   }
 
-  public String getNewlyDeferredFunctionImages(
+  public static String getNewlyDeferredFunctionImages(
     Set<String> deferredWords,
     JinjavaInterpreter interpreter
   ) {
@@ -247,7 +247,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     return result;
   }
 
-  private String buildSetTagForDeferredInChildContext(
+  private static String buildSetTagForDeferredInChildContext(
     Map<String, String> deferredValuesToSet,
     JinjavaInterpreter interpreter,
     boolean takeNewValue
