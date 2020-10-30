@@ -23,7 +23,7 @@ public class EagerDoTagTest extends DoTagTest {
       new JinjavaInterpreter(
         jinjava,
         context,
-        JinjavaConfig.newBuilder().withPreserveForFinalPass(true).build()
+        JinjavaConfig.newBuilder().withEagerExecutionEnabled(true).build()
       );
 
     tag = new EagerDoTag();

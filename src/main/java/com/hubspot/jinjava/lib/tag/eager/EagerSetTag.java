@@ -51,18 +51,20 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       .add(resolvedExpression.getResult())
       .add(tagToken.getSymbols().getExpressionEndWithTag());
     StringBuilder prefixToPreserveState = new StringBuilder(
-      interpreter.getContext().isEagerMode()
+      interpreter.getContext().isProtectedMode()
         ? resolvedExpression.getPrefixToPreserveState()
         : ""
     );
     String[] varTokens = variables.split(",");
 
-    if (chunkResolver.getDeferredWords().isEmpty()) {
+    if (
+      chunkResolver.getDeferredWords().isEmpty() &&
+      !interpreter.getContext().isProtectedMode()
+    ) {
       try {
         getTag()
           .executeSet(tagToken, interpreter, varTokens, resolvedExpression.getResult());
-        // Possible macro/set tag in front of this one.
-        return prefixToPreserveState.toString();
+        return "";
       } catch (DeferredValueException ignored) {}
     }
     prefixToPreserveState.append(

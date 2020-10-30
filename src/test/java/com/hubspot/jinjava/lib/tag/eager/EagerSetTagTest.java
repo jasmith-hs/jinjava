@@ -23,7 +23,7 @@ public class EagerSetTagTest extends SetTagTest {
       new JinjavaInterpreter(
         jinjava,
         context,
-        JinjavaConfig.newBuilder().withPreserveForFinalPass(true).build()
+        JinjavaConfig.newBuilder().withEagerExecutionEnabled(true).build()
       );
     tag = new EagerSetTag();
     context.registerTag(tag);
@@ -41,7 +41,7 @@ public class EagerSetTagTest extends SetTagTest {
   @Test
   public void itEvaluatesExpression() {
     context.put("bar", 3);
-    context.setEagerMode(true);
+    context.setProtectedMode(true);
     expectedNodeInterpreter.assertExpectedOutput("evaluates-expression");
     Optional<EagerToken> maybeEagerToken = context
       .getEagerTokens()
@@ -55,7 +55,7 @@ public class EagerSetTagTest extends SetTagTest {
   @Test
   public void itPartiallyEvaluatesDeferredExpression() {
     context.put("bar", 3);
-    context.setEagerMode(true);
+    context.setProtectedMode(true);
     expectedNodeInterpreter.assertExpectedOutput(
       "partially-evaluates-deferred-expression"
     );
@@ -75,7 +75,7 @@ public class EagerSetTagTest extends SetTagTest {
   public void itHandlesMultipleVars() {
     context.put("bar", 3);
     context.put("baz", 6);
-    context.setEagerMode(true);
+    context.setProtectedMode(true);
     expectedNodeInterpreter.assertExpectedOutput("handles-multiple-vars");
     Optional<EagerToken> maybeEagerToken = context
       .getEagerTokens()

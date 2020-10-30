@@ -36,8 +36,9 @@ public class EagerIfTag extends EagerTagDecorator<IfTag> {
 
     result.append(
       executeInChildContext(
-        eagerInterpreter -> getEagerImage(tagNode.getMaster(), eagerInterpreter),
-        eagerInterpreter -> renderChildren(tagNode, eagerInterpreter),
+        eagerInterpreter ->
+          getEagerImage(tagNode.getMaster(), eagerInterpreter) +
+          renderChildren(tagNode, eagerInterpreter),
         interpreter,
         false
       )

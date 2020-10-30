@@ -57,6 +57,7 @@ public class JinjavaConfig {
   private ELResolver elResolver;
   private final boolean iterateOverMapKeys;
   private final boolean preserveForFinalPass;
+  private final boolean eagerExecutionEnabled;
 
   public static Builder newBuilder() {
     return new Builder();
@@ -86,6 +87,7 @@ public class JinjavaConfig {
       interpreterFactory,
       new DefaultTokenScannerSymbols(),
       JinjavaInterpreterResolver.DEFAULT_RESOLVER_READ_ONLY,
+      false,
       false,
       false
     );
@@ -117,6 +119,7 @@ public class JinjavaConfig {
       new DefaultTokenScannerSymbols(),
       JinjavaInterpreterResolver.DEFAULT_RESOLVER_READ_ONLY,
       false,
+      false,
       false
     );
   }
@@ -141,7 +144,8 @@ public class JinjavaConfig {
     TokenScannerSymbols tokenScannerSymbols,
     ELResolver elResolver,
     boolean iterateOverMapKeys,
-    boolean preserveForFinalPass
+    boolean preserveForFinalPass,
+    boolean eagerExecutionEnabled
   ) {
     this.charset = charset;
     this.locale = locale;
@@ -163,6 +167,7 @@ public class JinjavaConfig {
     this.elResolver = elResolver;
     this.iterateOverMapKeys = iterateOverMapKeys;
     this.preserveForFinalPass = preserveForFinalPass;
+    this.eagerExecutionEnabled = eagerExecutionEnabled;
   }
 
   public Charset getCharset() {
@@ -249,6 +254,10 @@ public class JinjavaConfig {
     return preserveForFinalPass;
   }
 
+  public boolean isEagerExecutionEnabled() {
+    return eagerExecutionEnabled;
+  }
+
   public static class Builder {
     private Charset charset = StandardCharsets.UTF_8;
     private Locale locale = Locale.ENGLISH;
@@ -273,6 +282,7 @@ public class JinjavaConfig {
     private ELResolver elResolver = JinjavaInterpreterResolver.DEFAULT_RESOLVER_READ_ONLY;
     private boolean iterateOverMapKeys;
     private boolean preserveForFinalPass;
+    private boolean eagerExecutionEnabled;
 
     private Builder() {}
 
@@ -386,6 +396,11 @@ public class JinjavaConfig {
       return this;
     }
 
+    public Builder withEagerExecutionEnabled(boolean eagerExecutionEnabled) {
+      this.eagerExecutionEnabled = eagerExecutionEnabled;
+      return this;
+    }
+
     public JinjavaConfig build() {
       return new JinjavaConfig(
         charset,
@@ -407,7 +422,8 @@ public class JinjavaConfig {
         tokenScannerSymbols,
         elResolver,
         iterateOverMapKeys,
-        preserveForFinalPass
+        preserveForFinalPass,
+        eagerExecutionEnabled
       );
     }
   }

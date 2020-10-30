@@ -22,7 +22,7 @@ public class EagerIfTagTest extends IfTagTest {
       new JinjavaInterpreter(
         jinjava,
         context,
-        JinjavaConfig.newBuilder().withPreserveForFinalPass(true).build()
+        JinjavaConfig.newBuilder().withEagerExecutionEnabled(true).build()
       );
     tag = new EagerIfTag();
     context.registerTag(tag);

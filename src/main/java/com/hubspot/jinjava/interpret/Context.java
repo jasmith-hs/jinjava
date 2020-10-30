@@ -96,7 +96,7 @@ public class Context extends ScopeMap<String, Object> {
   private final Stack<String> renderStack = new Stack<>();
 
   private boolean validationMode = false;
-  private boolean eagerMode = false;
+  private boolean protectedMode = false;
   private boolean hideInterpreterErrors = false;
 
   public Context() {
@@ -572,12 +572,12 @@ public class Context extends ScopeMap<String, Object> {
     return this.dependencies;
   }
 
-  public boolean isEagerMode() {
-    return eagerMode;
+  public boolean isProtectedMode() {
+    return protectedMode;
   }
 
-  public Context setEagerMode(boolean eagerMode) {
-    this.eagerMode = eagerMode;
+  public Context setProtectedMode(boolean protectedMode) {
+    this.protectedMode = protectedMode;
     return this;
   }
 
@@ -591,11 +591,7 @@ public class Context extends ScopeMap<String, Object> {
 
   @Override
   public Object put(String key, Object value) {
-    if (!eagerMode || value instanceof DeferredValue) {
-      return super.put(key, value);
-    } else {
-      throw new DeferredValueException(key);
-    }
+    return super.put(key, value);
   }
 
   @Override

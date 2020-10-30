@@ -49,8 +49,9 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
   public String eagerInterpret(TagNode tagNode, JinjavaInterpreter interpreter) {
     StringBuilder result = new StringBuilder(
       executeInChildContext(
-          eagerInterpreter -> getEagerImage(tagNode.getMaster(), eagerInterpreter),
-          eagerInterpreter -> renderChildren(tagNode, eagerInterpreter),
+          eagerInterpreter ->
+            getEagerImage(tagNode.getMaster(), eagerInterpreter) +
+            renderChildren(tagNode, eagerInterpreter),
           interpreter,
           false
         )
@@ -73,58 +74,25 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
   }
 
   /**
-   * Execute the specified function within an isolated context,
-   *   not allowing anything new to be declared.
-   * The <code>function</code> is run and will throw a
-   *   <code>DeferredValueException</code> if a new value is attempted to be added
-   *   to the isolated context, ie declared.
-   * @param function Function to run in a child context.
-   * @param interpreter JinjavaInterpreter to create a child from.
-   * @param takeNewValue If a value is updated (not replaced) either take the new value or
-   *                     take the previous value and put it into the
-   *                     <code>EagerStringResult.prefixToPreserveState</code>.
-   *                     When true, eager mode is off. When false, eager mode is on.
-   * @return The combined string results of <code>declareEnabledFunction</code> and
-   *   <code>function</code>
-   */
-  public static EagerStringResult executeInChildContext(
-    Function<JinjavaInterpreter, String> function,
-    JinjavaInterpreter interpreter,
-    boolean takeNewValue
-  ) {
-    return executeInChildContext(
-      takeNewValue ? e -> "" : function,
-      takeNewValue ? function : e -> "",
-      interpreter,
-      takeNewValue
-    );
-  }
-
-  /**
-   * Execute the specified functions within an isolated context.
+   * Execute the specified functions within a protected context.
    * Additionally, if the execution causes existing values on the context to become
    *   deferred, then their previous values will wrapped in a <code>set</code>
    *   tag that gets prepended to the returned result.
-   * The <code>declareEnabledFunction</code> is run, allowing for new values to get
-   *   added to the isolated context, ie declared. (Used in tags that may declare values)
-   * The <code>declareDisabledFunction</code> is run and will throw a
-   *   <code>DeferredValueException</code> if a new value is attempted to be added
-   *   to the isolated context, ie declared.
-   * @param declareEnabledFunction Function to run allowing declaration of variables.
-   * @param declareDisabledFunction Function to run restricting declaration of variables.
+   * The <code>function</code> is run in protectedMode=true, where the context needs to
+   *   be protected from having values updated or set,
+   *   such as when evaluating both the positive and negative nodes in an if statement.
+   * @param function Function to run within a "protected" child context
    * @param interpreter JinjavaInterpreter to create a child from.
    * @param takeNewValue If a value is updated (not replaced) either take the new value or
    *                     take the previous value and put it into the
    *                     <code>EagerStringResult.prefixToPreserveState</code>.
    * @return An <code>EagerStringResult</code> where:
-   *  <code>result</code> is the combined string results of
-   *    <code>declareEnabledFunction</code> and <code>declareDisabledFunction</code>.
+   *  <code>result</code> is the string result of <code>function</code>.
    *  <code>prefixToPreserveState</code> is either blank or a <code>set</code> tag
    *    that preserves the state within the output for a second rendering pass.
    */
   public static EagerStringResult executeInChildContext(
-    Function<JinjavaInterpreter, String> declareEnabledFunction,
-    Function<JinjavaInterpreter, String> declareDisabledFunction,
+    Function<JinjavaInterpreter, String> function,
     JinjavaInterpreter interpreter,
     boolean takeNewValue
   ) {
@@ -156,10 +124,8 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       );
 
     try (InterpreterScopeClosable c = interpreter.enterScope()) {
-      interpreter.getContext().setEagerMode(false);
-      result.append(declareEnabledFunction.apply(interpreter));
-      interpreter.getContext().setEagerMode(true);
-      result.append(declareDisabledFunction.apply(interpreter));
+      interpreter.getContext().setProtectedMode(true);
+      result.append(function.apply(interpreter));
     }
     Map<String, String> deferredValuesToSet = interpreter
       .getContext()
@@ -182,6 +148,10 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
               if (takeNewValue) {
                 return ChunkResolver.getValueAsJinjavaString(e.getValue());
               }
+
+              // This is necessary if a state-changing function, such as .update()
+              // or .append() is run against a variable in the context.
+              // It will revert the effects when takeNewValue is false.
               if (initiallyResolvedAsStrings.containsKey(e.getKey())) {
                 return initiallyResolvedAsStrings.get(e.getKey());
               }
@@ -382,7 +352,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     try {
       return tag.interpret(tagNode, interpreter);
     } catch (DeferredValueException e) {
-      if (interpreter.getConfig().isPreserveForFinalPass()) {
+      if (interpreter.getConfig().isEagerExecutionEnabled()) {
         return eagerInterpret(tagNode, interpreter);
       } else {
         throw e;

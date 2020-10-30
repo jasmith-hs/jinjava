@@ -48,7 +48,7 @@ public class ExpressionNode extends Node {
     Object var;
     String prefixToPreserveState = "";
     String result;
-    if (interpreter.getConfig().isPreserveForFinalPass()) {
+    if (interpreter.getConfig().isEagerExecutionEnabled()) {
       EagerStringResult eagerStringResult = eagerResolveExpression(interpreter);
       result = eagerStringResult.getResult();
       prefixToPreserveState = eagerStringResult.getPrefixToPreserveState();
@@ -101,7 +101,7 @@ public class ExpressionNode extends Node {
       true
     );
     StringBuilder prefixToPreserveState = new StringBuilder(
-      interpreter.getContext().isEagerMode()
+      interpreter.getContext().isProtectedMode()
         ? resolvedExpression.getPrefixToPreserveState()
         : ""
     );

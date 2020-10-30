@@ -23,7 +23,7 @@ public class EagerForTagTest extends ForTagTest {
       new JinjavaInterpreter(
         jinjava,
         context,
-        JinjavaConfig.newBuilder().withPreserveForFinalPass(true).build()
+        JinjavaConfig.newBuilder().withEagerExecutionEnabled(true).build()
       );
     tag = new EagerForTag();
     context.registerTag(tag);

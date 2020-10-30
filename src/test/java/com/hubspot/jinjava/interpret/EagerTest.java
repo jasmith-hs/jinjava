@@ -63,6 +63,7 @@ public class EagerTest {
       .newBuilder()
       .withRandomNumberGeneratorStrategy(RandomNumberGeneratorStrategy.DEFERRED)
       .withPreserveForFinalPass(true)
+      .withEagerExecutionEnabled(true)
       .build();
     JinjavaInterpreter parentInterpreter = new JinjavaInterpreter(
       jinjava,
@@ -603,7 +604,11 @@ public class EagerTest {
     JinjavaInterpreter preserveInterpreter = new JinjavaInterpreter(
       jinjava,
       jinjava.getGlobalContextCopy(),
-      JinjavaConfig.newBuilder().withPreserveForFinalPass(false).build()
+      JinjavaConfig
+        .newBuilder()
+        .withPreserveForFinalPass(false)
+        .withEagerExecutionEnabled(false)
+        .build()
     );
     try {
       JinjavaInterpreter.pushCurrent(preserveInterpreter);

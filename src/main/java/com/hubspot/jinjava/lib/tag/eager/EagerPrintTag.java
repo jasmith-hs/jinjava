@@ -34,7 +34,7 @@ public class EagerPrintTag extends EagerStateChangingTag<PrintTag> {
       .add(resolvedExpression.getResult())
       .add(tagToken.getSymbols().getExpressionEndWithTag());
     StringBuilder prefixToPreserveState = new StringBuilder(
-      interpreter.getContext().isEagerMode()
+      interpreter.getContext().isProtectedMode()
         ? resolvedExpression.getPrefixToPreserveState()
         : ""
     );

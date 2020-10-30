@@ -13,7 +13,7 @@ public class EagerStateChangingTag<T extends Tag> extends EagerTagDecorator<T> {
 
   @Override
   public String interpret(TagNode tagNode, JinjavaInterpreter interpreter) {
-    if (interpreter.getConfig().isPreserveForFinalPass()) {
+    if (interpreter.getConfig().isEagerExecutionEnabled()) {
       return eagerInterpret(tagNode, interpreter);
     } else {
       return super.interpret(tagNode, interpreter);

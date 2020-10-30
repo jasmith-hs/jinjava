@@ -33,7 +33,7 @@ public class EagerDoTag extends EagerStateChangingTag<DoTag> {
       .add(resolvedExpression.getResult())
       .add(tagToken.getSymbols().getExpressionEndWithTag());
     StringBuilder prefixToPreserveState = new StringBuilder(
-      interpreter.getContext().isEagerMode()
+      interpreter.getContext().isProtectedMode()
         ? resolvedExpression.getPrefixToPreserveState()
         : ""
     );

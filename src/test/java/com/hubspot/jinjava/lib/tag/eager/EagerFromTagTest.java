@@ -29,7 +29,7 @@ public class EagerFromTagTest extends FromTagTest {
       new JinjavaInterpreter(
         jinjava,
         context,
-        JinjavaConfig.newBuilder().withPreserveForFinalPass(true).build()
+        JinjavaConfig.newBuilder().withEagerExecutionEnabled(true).build()
       );
     Tag tag = EagerTagFactory
       .getEagerTagDecorator(FromTag.class)

@@ -27,7 +27,11 @@ public class EagerGenericTagTest {
       new JinjavaInterpreter(
         jinjava,
         jinjava.getGlobalContextCopy(),
-        JinjavaConfig.newBuilder().withPreserveForFinalPass(true).build()
+        JinjavaConfig
+          .newBuilder()
+          .withPreserveForFinalPass(true)
+          .withEagerExecutionEnabled(true)
+          .build()
       );
     context = interpreter.getContext();
     context.put("deferred", DeferredValue.instance());
