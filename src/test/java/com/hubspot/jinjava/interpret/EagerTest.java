@@ -585,6 +585,19 @@ public class EagerTest {
   }
 
   @Test
+  public void itDefersMacroInExpression() {
+    assertExpectedOutput("defers-macro-in-expression");
+  }
+
+  @Test
+  public void itDefersMacroInExpressionSecondPass() {
+    localContext.put("deferred", 5);
+    assertExpectedOutput("defers-macro-in-expression.expected");
+    localContext.put("deferred", 5);
+    assertExpectedNonEagerOutput("defers-macro-in-expression.expected");
+  }
+
+  @Test
   public void itEagerlyDefersFrom() {}
 
   @Test
