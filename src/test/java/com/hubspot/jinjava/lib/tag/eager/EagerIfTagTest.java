@@ -65,4 +65,36 @@ public class EagerIfTagTest extends IfTagTest {
     assertThat(maybeEagerTagToken.get().getUsedDeferredWords())
       .containsExactlyInAnyOrder("deferred");
   }
+
+  @Test
+  public void itHandlesOnlyDeferredElif() {
+    context.put("foo", 1);
+    expectedNodeInterpreter.assertExpectedOutput("handles-only-deferred-elif");
+    Optional<EagerToken> maybeEagerTagToken = context
+      .getEagerTokens()
+      .stream()
+      .filter(e -> e.getToken() instanceof TagToken)
+      .filter(e -> ((TagToken) e.getToken()).getTagName().equals("elif"))
+      .findAny();
+    assertThat(maybeEagerTagToken).isPresent();
+    assertThat(maybeEagerTagToken.get().getSetDeferredWords()).isEmpty();
+    assertThat(maybeEagerTagToken.get().getUsedDeferredWords())
+      .containsExactlyInAnyOrder("deferred");
+  }
+
+  @Test
+  public void itRemovesImpossibleIfBlocks() {
+    context.put("foo", 1);
+    expectedNodeInterpreter.assertExpectedOutput("removes-impossible-if-blocks");
+    Optional<EagerToken> maybeEagerTagToken = context
+      .getEagerTokens()
+      .stream()
+      .filter(e -> e.getToken() instanceof TagToken)
+      .filter(e -> ((TagToken) e.getToken()).getTagName().equals(tag.getName()))
+      .findAny();
+    assertThat(maybeEagerTagToken).isPresent();
+    assertThat(maybeEagerTagToken.get().getSetDeferredWords()).isEmpty();
+    assertThat(maybeEagerTagToken.get().getUsedDeferredWords())
+      .containsExactlyInAnyOrder("deferred");
+  }
 }

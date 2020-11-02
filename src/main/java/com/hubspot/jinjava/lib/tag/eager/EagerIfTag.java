@@ -1,5 +1,6 @@
 package com.hubspot.jinjava.lib.tag.eager;
 
+import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
 import com.hubspot.jinjava.lib.tag.ElseIfTag;
@@ -8,6 +9,7 @@ import com.hubspot.jinjava.lib.tag.IfTag;
 import com.hubspot.jinjava.tree.Node;
 import com.hubspot.jinjava.tree.TagNode;
 import com.hubspot.jinjava.util.LengthLimitingStringBuilder;
+import com.hubspot.jinjava.util.ObjectTruthValue;
 import org.apache.commons.lang3.StringUtils;
 
 public class EagerIfTag extends EagerTagDecorator<IfTag> {
@@ -51,6 +53,12 @@ public class EagerIfTag extends EagerTagDecorator<IfTag> {
 
   @Override
   public String renderChildren(TagNode tagNode, JinjavaInterpreter eagerInterpreter) {
+    // If the branch is impossible, it should be removed
+    boolean definitelyDrop = shouldDropBranch(tagNode, eagerInterpreter);
+    // If the branch would definitely get executed, change it to and else
+    // and drop subsequent branches.
+    // We know this has to be false otherwise IfTag would have chosen the first branch.
+    boolean definitelyExecuted = false;
     StringBuilder sb = new StringBuilder();
     for (Node child : tagNode.getChildren()) {
       if (TagNode.class.isAssignableFrom(child.getClass())) {
@@ -59,12 +67,64 @@ public class EagerIfTag extends EagerTagDecorator<IfTag> {
           tag.getName().equals(ElseIfTag.TAG_NAME) ||
           tag.getName().equals(ElseTag.TAG_NAME)
         ) {
-          sb.append(getEagerImage(tag.getMaster(), eagerInterpreter));
+          if (definitelyExecuted) {
+            break;
+          }
+          definitelyDrop =
+            tag.getName().equals(ElseIfTag.TAG_NAME) &&
+            shouldDropBranch(tag, eagerInterpreter);
+          if (!definitelyDrop) {
+            definitelyExecuted =
+              tag.getName().equals(ElseTag.TAG_NAME) ||
+              isDefinitelyExecuted(tag, eagerInterpreter);
+            if (definitelyExecuted) {
+              sb.append(
+                String.format(
+                  "%s else %s",
+                  tag.getSymbols().getExpressionStartWithTag(),
+                  tag.getSymbols().getExpressionEndWithTag()
+                )
+              );
+            } else {
+              sb.append(getEagerImage(tag.getMaster(), eagerInterpreter));
+            }
+          }
           continue;
         }
       }
-      sb.append(renderChild(child, eagerInterpreter));
+      if (!definitelyDrop) {
+        sb.append(renderChild(child, eagerInterpreter));
+      }
     }
     return sb.toString();
+  }
+
+  private boolean shouldDropBranch(TagNode tagNode, JinjavaInterpreter eagerInterpreter) {
+    try {
+      return !ObjectTruthValue.evaluate(
+        eagerInterpreter.resolveELExpression(
+          tagNode.getHelpers(),
+          tagNode.getLineNumber()
+        )
+      );
+    } catch (DeferredValueException e) {
+      return false;
+    }
+  }
+
+  private boolean isDefinitelyExecuted(
+    TagNode tagNode,
+    JinjavaInterpreter eagerInterpreter
+  ) {
+    try {
+      return ObjectTruthValue.evaluate(
+        eagerInterpreter.resolveELExpression(
+          tagNode.getHelpers(),
+          tagNode.getLineNumber()
+        )
+      );
+    } catch (DeferredValueException e) {
+      return false;
+    }
   }
 }
