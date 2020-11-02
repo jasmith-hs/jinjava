@@ -598,6 +598,16 @@ public class EagerTest {
   }
 
   @Test
+  public void itHandlesDeferredInIfchanged() {
+    assertExpectedOutput("handles-deferred-in-ifchanged");
+  }
+
+  @Test
+  public void itDefersIfchanged() {
+    assertExpectedOutput("defers-ifchanged");
+  }
+
+  @Test
   public void itEagerlyDefersFrom() {}
 
   @Test
