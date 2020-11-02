@@ -1,4 +1,4 @@
-package com.hubspot.jinjava.interpret;
+package com.hubspot.jinjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
