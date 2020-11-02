@@ -169,7 +169,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
         buildSetTagForDeferredInChildContext(
           deferredValuesToSet,
           interpreter,
-          takeNewValue
+          !takeNewValue
         )
       );
     }
@@ -217,10 +217,10 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     return result;
   }
 
-  private static String buildSetTagForDeferredInChildContext(
+  public static String buildSetTagForDeferredInChildContext(
     Map<String, String> deferredValuesToSet,
     JinjavaInterpreter interpreter,
-    boolean takeNewValue
+    boolean registerEagerToken
   ) {
     if (
       interpreter.getConfig().getDisabled().containsKey(Library.TAG) &&
@@ -248,7 +248,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag());
     String image = result.toString();
     // Don't defer if we're sticking with the new value
-    if (!takeNewValue) {
+    if (registerEagerToken) {
       interpreter
         .getContext()
         .handleEagerToken(

@@ -306,32 +306,36 @@ public class ChunkResolver {
     return Arrays
       .stream(chunk.substring(start, end).split("[^\\w.]"))
       .filter(StringUtils::isNotBlank)
-      .filter(
-        w -> {
-          try {
-            if (RESERVED_KEYWORDS.contains(w)) {
-              return false;
-            }
-            try {
-              Object val = interpreter.retraceVariable(
-                w,
-                token.getLineNumber(),
-                token.getStartPosition()
-              );
-              if (val != null) {
-                // It's a variable that must now be deferred
-                return true;
-              }
-            } catch (UnknownTokenException e) {
-              // val is still null
-            }
-            // don't defer numbers, values such as true/false, etc.
-            return interpreter.resolveELExpression(w, token.getLineNumber()) == null;
-          } catch (DeferredValueException e) {
-            return true;
-          }
-        }
-      )
+      .filter(w -> shouldBeEvaluated(w, token, interpreter))
       .collect(Collectors.toSet());
+  }
+
+  public static boolean shouldBeEvaluated(
+    String w,
+    Token token,
+    JinjavaInterpreter interpreter
+  ) {
+    try {
+      if (RESERVED_KEYWORDS.contains(w)) {
+        return false;
+      }
+      try {
+        Object val = interpreter.retraceVariable(
+          w,
+          token.getLineNumber(),
+          token.getStartPosition()
+        );
+        if (val != null) {
+          // It's a variable that must now be deferred
+          return true;
+        }
+      } catch (UnknownTokenException e) {
+        // val is still null
+      }
+      // don't defer numbers, values such as true/false, etc.
+      return interpreter.resolveELExpression(w, token.getLineNumber()) == null;
+    } catch (DeferredValueException e) {
+      return true;
+    }
   }
 }

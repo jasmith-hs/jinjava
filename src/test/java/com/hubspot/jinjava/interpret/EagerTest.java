@@ -9,6 +9,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import com.hubspot.jinjava.Jinjava;
 import com.hubspot.jinjava.JinjavaConfig;
+import com.hubspot.jinjava.interpret.Context;
+import com.hubspot.jinjava.interpret.DeferredValue;
+import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
 import com.hubspot.jinjava.loader.LocationResolver;
 import com.hubspot.jinjava.loader.RelativePathResolver;
@@ -605,6 +608,41 @@ public class EagerTest {
   @Test
   public void itDefersIfchanged() {
     assertExpectedOutput("defers-ifchanged");
+  }
+
+  @Test
+  public void itHandlesCycleInDeferredFor() {
+    assertExpectedOutput("handles-cycle-in-deferred-for");
+  }
+
+  @Test
+  public void itHandlesCycleInDeferredForSecondPass() {
+    localContext.put("deferred", new String[] { "foo", "bar", "foobar", "baz" });
+    assertExpectedOutput("handles-cycle-in-deferred-for.expected");
+    assertExpectedNonEagerOutput("handles-cycle-in-deferred-for.expected");
+  }
+
+  @Test
+  public void itHandlesDeferredInCycle() {
+    assertExpectedOutput("handles-deferred-in-cycle");
+  }
+
+  @Test
+  public void itHandlesDeferredCycleAs() {
+    assertExpectedOutput("handles-deferred-cycle-as");
+  }
+
+  @Test
+  public void itHandlesDeferredCycleAsSecondPass() {
+    localContext.put("deferred", "hello");
+    assertExpectedOutput("handles-deferred-cycle-as.expected");
+    assertExpectedNonEagerOutput("handles-deferred-cycle-as.expected");
+  }
+
+  @Test
+  public void itHandlesNonDeferringCycles() {
+    assertExpectedNonEagerOutput("handles-non-deferring-cycles");
+    assertExpectedOutput("handles-non-deferring-cycles");
   }
 
   @Test
