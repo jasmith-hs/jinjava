@@ -408,7 +408,9 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
         output.contains(
           interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag()
         )
-      ) output = wrapInTag(output, RawTag.TAG_NAME, interpreter);
+      ) {
+        output = wrapInTag(output, RawTag.TAG_NAME, interpreter);
+      }
     }
     return output;
   }

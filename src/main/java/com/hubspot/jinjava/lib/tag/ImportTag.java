@@ -77,12 +77,10 @@ public class ImportTag implements Tag {
 
     String contextVar = getContextVar(helper);
 
-    String path = getPath(helper);
-
     Optional<String> maybeTemplateFile = getTemplateFile(
+      helper,
       (TagToken) tagNode.getMaster(),
-      interpreter,
-      path
+      interpreter
     );
     if (!maybeTemplateFile.isPresent()) {
       return "";
@@ -113,16 +111,16 @@ public class ImportTag implements Tag {
       if (!child.getContext().getDeferredNodes().isEmpty()) {
         handleDeferredNodesDuringImport(
           (TagToken) tagNode.getMaster(),
-          interpreter,
+          node,
           contextVar,
           templateFile,
-          node,
+          childBindings,
           child,
-          childBindings
+          interpreter
         );
       }
 
-      integrateChild(interpreter, contextVar, child, childBindings);
+      integrateChild(contextVar, childBindings, child, interpreter);
       return "";
     } catch (IOException e) {
       throw new InterpretException(
@@ -137,17 +135,17 @@ public class ImportTag implements Tag {
   }
 
   public static void integrateChild(
-    JinjavaInterpreter interpreter,
     String contextVar,
+    Map<String, Object> childBindings,
     JinjavaInterpreter child,
-    Map<String, Object> childBindings
+    JinjavaInterpreter parent
   ) {
     if (StringUtils.isBlank(contextVar)) {
       for (MacroFunction macro : child.getContext().getGlobalMacros().values()) {
-        interpreter.getContext().addGlobalMacro(macro);
+        parent.getContext().addGlobalMacro(macro);
       }
       childBindings.remove(Context.GLOBAL_MACROS_SCOPE_KEY);
-      interpreter.getContext().putAll(childBindings);
+      parent.getContext().putAll(childBindings);
     } else {
       for (Map.Entry<String, MacroFunction> macro : child
         .getContext()
@@ -156,18 +154,18 @@ public class ImportTag implements Tag {
         childBindings.put(macro.getKey(), macro.getValue());
       }
       childBindings.remove(Context.GLOBAL_MACROS_SCOPE_KEY);
-      interpreter.getContext().put(contextVar, childBindings);
+      parent.getContext().put(contextVar, childBindings);
     }
   }
 
   public static void handleDeferredNodesDuringImport(
     TagToken tagToken,
-    JinjavaInterpreter interpreter,
+    Node node,
     String contextVar,
     String templateFile,
-    Node node,
+    Map<String, Object> childBindings,
     JinjavaInterpreter child,
-    Map<String, Object> childBindings
+    JinjavaInterpreter interpreter
   ) {
     node
       .getChildren()
@@ -216,15 +214,15 @@ public class ImportTag implements Tag {
       .push(templateFile, interpreter.getLineNumber(), interpreter.getPosition());
 
     String template = interpreter.getResource(templateFile);
-    Node node = interpreter.parse(template);
-    return node;
+    return interpreter.parse(template);
   }
 
   public static Optional<String> getTemplateFile(
+    List<String> helper,
     TagToken tagToken,
-    JinjavaInterpreter interpreter,
-    String path
+    JinjavaInterpreter interpreter
   ) {
+    String path = StringUtils.trimToEmpty(helper.get(0));
     try {
       interpreter
         .getContext()
@@ -256,11 +254,6 @@ public class ImportTag implements Tag {
     templateFile = interpreter.resolveResourceLocation(templateFile);
     interpreter.getContext().addDependency("coded_files", templateFile);
     return Optional.of(templateFile);
-  }
-
-  public static String getPath(List<String> helper) {
-    String path = StringUtils.trimToEmpty(helper.get(0));
-    return path;
   }
 
   public static String getContextVar(List<String> helper) {

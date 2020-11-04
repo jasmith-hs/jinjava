@@ -49,6 +49,16 @@ public class MacroFunction extends AbstractCallableMethod {
     this.deferred = false;
   }
 
+  public MacroFunction(MacroFunction source, String name) {
+    super(name, (LinkedHashMap<String, Object>) source.getDefaults());
+    this.content = source.content;
+    this.caller = source.caller;
+    this.localContextScope = source.localContextScope;
+    this.definitionLineNumber = source.definitionLineNumber;
+    this.definitionStartPosition = source.definitionStartPosition;
+    this.deferred = source.deferred;
+  }
+
   @Override
   public Object doEvaluate(
     Map<String, Object> argMap,

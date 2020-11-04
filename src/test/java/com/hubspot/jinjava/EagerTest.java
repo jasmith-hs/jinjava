@@ -670,11 +670,11 @@ public class EagerTest {
     assertExpectedOutput("handles-deferred-from-import-as");
   }
 
-  //  @Test
-  //  public void itHandlesDeferredImportVarsSecondPass() {
-  //    localContext.put("deferred", 1);
-  //    assertExpectedOutput("handles-deferred-import-vars.expected");
-  //  }
+  @Test
+  public void itHandlesDeferredFromImportAsSecondPass() {
+    localContext.put("deferred", 1);
+    assertExpectedOutput("handles-deferred-from-import-as.expected");
+  }
 
   @Test
   public void itEagerlyDefersFrom() {}

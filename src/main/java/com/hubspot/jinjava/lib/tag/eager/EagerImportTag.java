@@ -25,12 +25,10 @@ public class EagerImportTag extends EagerStateChangingTag<ImportTag> {
 
     String contextVar = ImportTag.getContextVar(helper);
 
-    String path = ImportTag.getPath(helper);
-
     Optional<String> maybeTemplateFile = ImportTag.getTemplateFile(
+      helper,
       tagToken,
-      interpreter,
-      path
+      interpreter
     );
     if (!maybeTemplateFile.isPresent()) {
       return "";
@@ -78,20 +76,20 @@ public class EagerImportTag extends EagerStateChangingTag<ImportTag> {
       if (!child.getContext().getDeferredNodes().isEmpty()) {
         ImportTag.handleDeferredNodesDuringImport(
           tagToken,
-          interpreter,
+          node,
           contextVar,
           templateFile,
-          node,
+          childBindings,
           child,
-          childBindings
+          interpreter
         );
       }
 
-      ImportTag.integrateChild(interpreter, contextVar, child, childBindings);
+      ImportTag.integrateChild(contextVar, childBindings, child, interpreter);
       if (child.getContext().getEagerTokens().isEmpty() || output == null) {
         output = "";
       } else if (child.getContext().containsKey(Context.IMPORT_RESOURCE_ALIAS)) {
-        // Start it as a new dictionary
+        // Start it as a new dictionary before output
         output =
           buildSetTagForDeferredInChildContext(
             ImmutableMap.of(

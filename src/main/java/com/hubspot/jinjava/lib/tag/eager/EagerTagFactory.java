@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import com.hubspot.jinjava.lib.tag.CycleTag;
 import com.hubspot.jinjava.lib.tag.DoTag;
 import com.hubspot.jinjava.lib.tag.ForTag;
+import com.hubspot.jinjava.lib.tag.FromTag;
 import com.hubspot.jinjava.lib.tag.IfTag;
 import com.hubspot.jinjava.lib.tag.ImportTag;
 import com.hubspot.jinjava.lib.tag.PrintTag;
@@ -25,6 +26,7 @@ public class EagerTagFactory {
     .put(SetTag.class, EagerSetTag.class)
     .put(CycleTag.class, EagerCycleTag.class)
     .put(ImportTag.class, EagerImportTag.class)
+    .put(FromTag.class, EagerFromTag.class)
     .build();
 
   @SuppressWarnings("unchecked")
