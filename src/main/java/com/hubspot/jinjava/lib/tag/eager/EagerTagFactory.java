@@ -6,6 +6,7 @@ import com.hubspot.jinjava.lib.tag.CycleTag;
 import com.hubspot.jinjava.lib.tag.DoTag;
 import com.hubspot.jinjava.lib.tag.ForTag;
 import com.hubspot.jinjava.lib.tag.IfTag;
+import com.hubspot.jinjava.lib.tag.ImportTag;
 import com.hubspot.jinjava.lib.tag.PrintTag;
 import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.lib.tag.Tag;
@@ -23,6 +24,7 @@ public class EagerTagFactory {
     .put(PrintTag.class, EagerPrintTag.class)
     .put(SetTag.class, EagerSetTag.class)
     .put(CycleTag.class, EagerCycleTag.class)
+    .put(ImportTag.class, EagerImportTag.class)
     .build();
 
   @SuppressWarnings("unchecked")

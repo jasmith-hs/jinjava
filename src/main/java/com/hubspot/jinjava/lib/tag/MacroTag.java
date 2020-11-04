@@ -14,6 +14,7 @@ import com.hubspot.jinjava.tree.TagNode;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
@@ -127,7 +128,7 @@ public class MacroTag implements Tag {
 
     if (StringUtils.isNotEmpty(parentName)) {
       try {
-        HashMap<String, Object> macroOfParent = (HashMap<String, Object>) interpreter
+        Map<String, Object> macroOfParent = (Map<String, Object>) interpreter
           .getContext()
           .getOrDefault(parentName, new HashMap<>());
         macroOfParent.put(macro.getName(), macro);

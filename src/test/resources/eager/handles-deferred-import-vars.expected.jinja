@@ -1,0 +1,8 @@
+{% set myname = deferred + 3 %}
+getPath: {% macro foo() %}Hello {{ myname }}{% endmacro %}{{ foo() }}
+bar: 19{% set simple = {} %}
+{% do simple.update({'bar': myname + 19}) %}
+{% macro foo() %}Hello {{ myname }}{% endmacro %}{{ foo() }}
+{% set myname = deferred + 7 %}
+simple.getPath: {% macro simple.foo() %}Hello {{ myname }}{% endmacro %}{{ simple.foo() }}
+simple.bar: {{ simple.bar }}

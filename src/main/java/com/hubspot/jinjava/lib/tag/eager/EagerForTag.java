@@ -58,7 +58,12 @@ public class EagerForTag extends EagerTagDecorator<ForTag> {
       .getContext()
       .handleEagerToken(
         new EagerToken(
-          tagToken,
+          new TagToken(
+            joiner.toString(),
+            tagToken.getLineNumber(),
+            tagToken.getStartPosition(),
+            tagToken.getSymbols()
+          ),
           chunkResolver.getDeferredWords(),
           new HashSet<>(loopVars)
         )

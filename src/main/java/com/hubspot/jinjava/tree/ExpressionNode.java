@@ -31,6 +31,7 @@ import com.hubspot.jinjava.objects.SafeString;
 import com.hubspot.jinjava.tree.output.OutputNode;
 import com.hubspot.jinjava.tree.output.RenderedOutputNode;
 import com.hubspot.jinjava.tree.parse.ExpressionToken;
+import com.hubspot.jinjava.tree.parse.TagToken;
 import com.hubspot.jinjava.util.ChunkResolver;
 import com.hubspot.jinjava.util.Logging;
 import com.hubspot.jinjava.util.WhitespaceUtils;
@@ -122,17 +123,24 @@ public class ExpressionNode extends Node {
     prefixToPreserveState.append(
       getNewlyDeferredFunctionImages(chunkResolver.getDeferredWords(), interpreter)
     );
+    String helpers = wrapInExpression(resolvedExpression.getResult(), interpreter);
     interpreter
       .getContext()
-      .handleEagerToken(new EagerToken(master, chunkResolver.getDeferredWords()));
+      .handleEagerToken(
+        new EagerToken(
+          new TagToken(
+            helpers,
+            master.getLineNumber(),
+            master.getStartPosition(),
+            master.getSymbols()
+          ),
+          chunkResolver.getDeferredWords()
+        )
+      );
     // There is no result because it couldn't be entirely evaluated.
     return new EagerStringResult(
       "",
-      wrapInAutoEscapeIfNeeded(
-        prefixToPreserveState.toString() +
-        wrapInExpression(resolvedExpression.getResult(), interpreter),
-        interpreter
-      )
+      wrapInAutoEscapeIfNeeded(prefixToPreserveState.toString() + helpers, interpreter)
     );
   }
 

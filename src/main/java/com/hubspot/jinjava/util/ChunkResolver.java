@@ -11,8 +11,10 @@ import com.hubspot.jinjava.interpret.UnknownTokenException;
 import com.hubspot.jinjava.objects.date.JsonPyishDateSerializer;
 import com.hubspot.jinjava.objects.date.PyishDate;
 import com.hubspot.jinjava.tree.parse.Token;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -136,7 +138,23 @@ public class ChunkResolver {
       .isHideInterpreterErrors();
     try {
       interpreter.getContext().setHideInterpreterErrors(true);
-      return getChunk(null);
+      return String.join("", getChunk(null));
+    } finally {
+      interpreter.getContext().setHideInterpreterErrors(isHideInterpreterErrorsStart);
+    }
+  }
+
+  public List<String> splitChunks() {
+    nextPos = 0;
+    boolean isHideInterpreterErrorsStart = interpreter
+      .getContext()
+      .isHideInterpreterErrors();
+    try {
+      interpreter.getContext().setHideInterpreterErrors(true);
+      return getChunk(null)
+        .stream()
+        .filter(s -> s.length() > 1 || isMiniChunkSplitter(s.charAt(0)))
+        .collect(Collectors.toList());
     } finally {
       interpreter.getContext().setHideInterpreterErrors(isHideInterpreterErrorsStart);
     }
@@ -150,8 +168,8 @@ public class ChunkResolver {
    * @param chunkLevelMarker the marker `(`, `[`, `{` that started this chunk
    * @return the resolved chunk
    */
-  private String getChunk(Character chunkLevelMarker) {
-    StringBuilder chunkBuilder = new StringBuilder();
+  private List<String> getChunk(Character chunkLevelMarker) {
+    List<String> chunks = new ArrayList<>();
     // Mini chunks are split by commas.
     StringBuilder miniChunkBuilder = new StringBuilder();
     StringBuilder tokenBuilder = new StringBuilder();
@@ -172,7 +190,7 @@ public class ChunkResolver {
       } else if (CHUNK_LEVEL_MARKER_MAP.containsKey(c)) {
         prevChar = c;
         tokenBuilder.append(c);
-        tokenBuilder.append(resolveChunk(getChunk(c)));
+        tokenBuilder.append(resolveChunk(String.join("", getChunk(c))));
         tokenBuilder.append(prevChar);
         continue;
       } else if (isTokenSplitter(c)) {
@@ -181,8 +199,8 @@ public class ChunkResolver {
         miniChunkBuilder.append(resolveToken(tokenBuilder.toString()));
         tokenBuilder = new StringBuilder();
         if (isMiniChunkSplitter(c)) {
-          chunkBuilder.append(resolveChunk(miniChunkBuilder.toString()));
-          chunkBuilder.append(c);
+          chunks.add(resolveChunk(miniChunkBuilder.toString()));
+          chunks.add(String.valueOf(c));
           miniChunkBuilder = new StringBuilder();
         } else {
           miniChunkBuilder.append(c);
@@ -193,8 +211,8 @@ public class ChunkResolver {
       tokenBuilder.append(c);
     }
     miniChunkBuilder.append(resolveToken(tokenBuilder.toString()));
-    chunkBuilder.append(resolveChunk(miniChunkBuilder.toString()));
-    return chunkBuilder.toString();
+    chunks.add(resolveChunk(miniChunkBuilder.toString()));
+    return chunks;
   }
 
   private boolean isTokenSplitter(char c) {

@@ -46,7 +46,17 @@ public class EagerDoTag extends EagerStateChangingTag<DoTag> {
     );
     interpreter
       .getContext()
-      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
+      .handleEagerToken(
+        new EagerToken(
+          new TagToken(
+            joiner.toString(),
+            tagToken.getLineNumber(),
+            tagToken.getStartPosition(),
+            tagToken.getSymbols()
+          ),
+          chunkResolver.getDeferredWords()
+        )
+      );
     // Possible set tag in front of this one.
     return wrapInAutoEscapeIfNeeded(
       prefixToPreserveState.toString() + joiner.toString(),

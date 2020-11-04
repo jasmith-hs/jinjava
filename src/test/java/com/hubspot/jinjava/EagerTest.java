@@ -7,14 +7,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
-import com.hubspot.jinjava.Jinjava;
-import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.interpret.Context;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
-import com.hubspot.jinjava.lib.tag.AutoEscapeTag;
-import com.hubspot.jinjava.lib.tag.Tag;
-import com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
 import com.hubspot.jinjava.loader.LocationResolver;
 import com.hubspot.jinjava.loader.RelativePathResolver;
@@ -658,6 +653,28 @@ public class EagerTest {
   public void itWrapsCertainOutputInRaw() {
     assertExpectedOutput("wraps-certain-output-in-raw");
   }
+
+  @Test
+  public void itHandlesDeferredImportVars() {
+    assertExpectedOutput("handles-deferred-import-vars");
+  }
+
+  @Test
+  public void itHandlesDeferredImportVarsSecondPass() {
+    localContext.put("deferred", 1);
+    assertExpectedOutput("handles-deferred-import-vars.expected");
+  }
+
+  @Test
+  public void itHandlesDeferredFromImportAs() {
+    assertExpectedOutput("handles-deferred-from-import-as");
+  }
+
+  //  @Test
+  //  public void itHandlesDeferredImportVarsSecondPass() {
+  //    localContext.put("deferred", 1);
+  //    assertExpectedOutput("handles-deferred-import-vars.expected");
+  //  }
 
   @Test
   public void itEagerlyDefersFrom() {}

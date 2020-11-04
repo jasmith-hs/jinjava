@@ -1,12 +1,15 @@
 package com.hubspot.jinjava.lib.tag.eager;
 
+import com.hubspot.jinjava.interpret.Context;
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
+import com.hubspot.jinjava.lib.tag.DoTag;
 import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.tree.parse.TagToken;
 import com.hubspot.jinjava.util.ChunkResolver;
 import java.util.Arrays;
+import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
@@ -35,6 +38,11 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
     String variables = tagToken.getHelpers().substring(0, eqPos).trim();
 
     String expression = tagToken.getHelpers().substring(eqPos + 1);
+    if (interpreter.getContext().containsKey(Context.IMPORT_RESOURCE_ALIAS)) {
+      return interpreter.render(
+        convertSetToUpdate(variables, expression, tagToken, interpreter)
+      );
+    }
     ChunkResolver chunkResolver = new ChunkResolver(expression, tagToken, interpreter)
     .useMiniChunks(true);
     EagerStringResult resolvedExpression = executeInChildContext(
@@ -75,7 +83,12 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       .getContext()
       .handleEagerToken(
         new EagerToken(
-          tagToken,
+          new TagToken(
+            joiner.toString(),
+            tagToken.getLineNumber(),
+            tagToken.getStartPosition(),
+            tagToken.getSymbols()
+          ),
           chunkResolver.getDeferredWords(),
           Arrays.stream(varTokens).map(String::trim).collect(Collectors.toSet())
         )
@@ -85,5 +98,37 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
       prefixToPreserveState.toString() + joiner.toString(),
       interpreter
     );
+  }
+
+  private static String convertSetToUpdate(
+    String variables,
+    String expression,
+    TagToken tagToken,
+    JinjavaInterpreter interpreter
+  ) {
+    StringJoiner joiner = new StringJoiner(" ")
+      .add(interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag())
+      .add(DoTag.TAG_NAME);
+    List<String> varList = Arrays
+      .stream(variables.split(","))
+      .map(String::trim)
+      .collect(Collectors.toList());
+    ChunkResolver chunkResolver = new ChunkResolver(expression, tagToken, interpreter);
+    List<String> expressionList = chunkResolver.splitChunks();
+    StringJoiner updateString = new StringJoiner(",");
+    for (int i = 0; i < varList.size() && i < expressionList.size(); i++) {
+      updateString.add(String.format("'%s': %s", varList.get(i), expressionList.get(i)));
+    }
+    joiner.add(
+      String.format(
+        "%s.update({%s})",
+        interpreter.getContext().get(Context.IMPORT_RESOURCE_ALIAS),
+        updateString.toString()
+      )
+    );
+    joiner.add(
+      interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag()
+    );
+    return joiner.toString();
   }
 }

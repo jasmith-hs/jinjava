@@ -349,7 +349,17 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
 
     interpreter
       .getContext()
-      .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
+      .handleEagerToken(
+        new EagerToken(
+          new TagToken(
+            joiner.toString(),
+            tagToken.getLineNumber(),
+            tagToken.getStartPosition(),
+            tagToken.getSymbols()
+          ),
+          chunkResolver.getDeferredWords()
+        )
+      );
 
     return (newlyDeferredFunctionImages + joiner.toString());
   }

@@ -1,0 +1,9 @@
+{%- set myname = deferred + (1 + 2) -%}
+{%- from "macro-and-set.jinja" import foo, bar -%}
+getPath: {{ foo() }}
+bar: {{ bar }}
+
+{%- import "macro-and-set.jinja" as simple -%}
+{%- set myname = deferred + (3 + 4) -%}
+simple.getPath: {{ simple.foo() }}
+simple.bar: {{ simple.bar }}
