@@ -17,6 +17,8 @@ package com.hubspot.jinjava.tree;
 
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.executeInChildContext;
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.getNewlyDeferredFunctionImages;
+import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.wrapInAutoEscapeIfNeeded;
+import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.wrapInRawIfNeeded;
 
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
@@ -108,7 +110,10 @@ public class ExpressionNode extends Node {
     if (chunkResolver.getDeferredWords().isEmpty()) {
       // Possible macro/set tag in front of this one. Includes result
       return new EagerStringResult(
-        WhitespaceUtils.unquote(resolvedExpression.getResult()),
+        wrapInRawIfNeeded(
+          WhitespaceUtils.unquote(resolvedExpression.getResult()),
+          interpreter
+        ),
         prefixToPreserveState.toString()
       );
     }
@@ -121,8 +126,11 @@ public class ExpressionNode extends Node {
     // There is no result because it couldn't be entirely evaluated.
     return new EagerStringResult(
       "",
-      prefixToPreserveState.toString() +
-      String.format("{{ %s }}", resolvedExpression.getResult())
+      wrapInAutoEscapeIfNeeded(
+        prefixToPreserveState.toString() +
+        String.format("{{ %s }}", resolvedExpression.getResult()),
+        interpreter
+      )
     );
   }
 

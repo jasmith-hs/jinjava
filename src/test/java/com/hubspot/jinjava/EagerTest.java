@@ -12,6 +12,9 @@ import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.interpret.Context;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
+import com.hubspot.jinjava.lib.tag.AutoEscapeTag;
+import com.hubspot.jinjava.lib.tag.Tag;
+import com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator;
 import com.hubspot.jinjava.lib.tag.eager.EagerTagFactory;
 import com.hubspot.jinjava.loader.LocationResolver;
 import com.hubspot.jinjava.loader.RelativePathResolver;
@@ -643,6 +646,17 @@ public class EagerTest {
   public void itHandlesNonDeferringCycles() {
     assertExpectedNonEagerOutput("handles-non-deferring-cycles");
     assertExpectedOutput("handles-non-deferring-cycles");
+  }
+
+  @Test
+  public void itHandlesAutoEscape() {
+    localContext.put("myvar", "foo < bar");
+    assertExpectedOutput("handles-auto-escape");
+  }
+
+  @Test
+  public void itWrapsCertainOutputInRaw() {
+    assertExpectedOutput("wraps-certain-output-in-raw");
   }
 
   @Test

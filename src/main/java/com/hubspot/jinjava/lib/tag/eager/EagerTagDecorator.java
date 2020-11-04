@@ -13,6 +13,8 @@ import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter.InterpreterScopeClosable;
 import com.hubspot.jinjava.lib.fn.MacroFunction;
 import com.hubspot.jinjava.lib.fn.eager.EagerMacroFunction;
+import com.hubspot.jinjava.lib.tag.AutoEscapeTag;
+import com.hubspot.jinjava.lib.tag.RawTag;
 import com.hubspot.jinjava.lib.tag.SetTag;
 import com.hubspot.jinjava.lib.tag.Tag;
 import com.hubspot.jinjava.tree.Node;
@@ -44,6 +46,37 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
 
   public T getTag() {
     return tag;
+  }
+
+  @Override
+  public String interpret(TagNode tagNode, JinjavaInterpreter interpreter) {
+    try {
+      return tag.interpret(tagNode, interpreter);
+    } catch (DeferredValueException e) {
+      if (interpreter.getConfig().isEagerExecutionEnabled()) {
+        return wrapInAutoEscapeIfNeeded(
+          eagerInterpret(tagNode, interpreter),
+          interpreter
+        );
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  @Override
+  public String getName() {
+    return tag.getName();
+  }
+
+  @Override
+  public String getEndTagName() {
+    return tag.getEndTagName();
+  }
+
+  @Override
+  public boolean isRenderedInValidationMode() {
+    return tag.isRenderedInValidationMode();
   }
 
   public String eagerInterpret(TagNode tagNode, JinjavaInterpreter interpreter) {
@@ -347,40 +380,64 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     return "";
   }
 
-  @Override
-  public String interpret(TagNode tagNode, JinjavaInterpreter interpreter) {
-    try {
-      return tag.interpret(tagNode, interpreter);
-    } catch (DeferredValueException e) {
-      if (interpreter.getConfig().isEagerExecutionEnabled()) {
-        return eagerInterpret(tagNode, interpreter);
-      } else {
-        throw e;
-      }
-    }
-  }
-
-  @Override
-  public String getName() {
-    return tag.getName();
-  }
-
-  @Override
-  public String getEndTagName() {
-    return tag.getEndTagName();
-  }
-
-  @Override
-  public boolean isRenderedInValidationMode() {
-    return tag.isRenderedInValidationMode();
-  }
-
-  public String reconstructEnd(TagNode tagNode) {
+  public static String reconstructEnd(TagNode tagNode) {
     return String.format(
       "%s %s %s",
       tagNode.getSymbols().getExpressionStartWithTag(),
       tagNode.getEndName(),
       tagNode.getSymbols().getExpressionEndWithTag()
+    );
+  }
+
+  public static String wrapInRawIfNeeded(String output, JinjavaInterpreter interpreter) {
+    if (interpreter.getConfig().isPreserveForFinalPass()) {
+      if (
+        output.contains(
+          interpreter.getConfig().getTokenScannerSymbols().getExpressionStart()
+        ) ||
+        output.contains(
+          interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag()
+        )
+      ) output = wrapInTag(output, RawTag.TAG_NAME, interpreter);
+    }
+    return output;
+  }
+
+  public static String wrapInAutoEscapeIfNeeded(
+    String output,
+    JinjavaInterpreter interpreter
+  ) {
+    if (
+      interpreter.getContext().isAutoEscape() &&
+      (
+        interpreter.getContext().getParent() == null ||
+        !interpreter.getContext().getParent().isAutoEscape()
+      )
+    ) {
+      output = wrapInTag(output, AutoEscapeTag.TAG_NAME, interpreter);
+    }
+    return output;
+  }
+
+  private static String wrapInTag(
+    String s,
+    String tagNameToWrap,
+    JinjavaInterpreter interpreter
+  ) {
+    return (
+      String.format(
+        "%s %s %s",
+        interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag(),
+        tagNameToWrap,
+        interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag()
+      ) +
+      s +
+      String.format(
+        "%s end%s %s",
+        interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag(),
+        tagNameToWrap,
+        interpreter.getConfig().getTokenScannerSymbols().getExpressionEndWithTag()
+      )
     );
   }
 }

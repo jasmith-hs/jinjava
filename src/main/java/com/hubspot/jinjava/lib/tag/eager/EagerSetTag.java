@@ -81,6 +81,9 @@ public class EagerSetTag extends EagerStateChangingTag<SetTag> {
         )
       );
     // Possible macro/set tag in front of this one.
-    return prefixToPreserveState.toString() + joiner.toString();
+    return wrapInAutoEscapeIfNeeded(
+      prefixToPreserveState.toString() + joiner.toString(),
+      interpreter
+    );
   }
 }

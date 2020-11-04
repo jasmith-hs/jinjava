@@ -6,7 +6,7 @@ import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.interpret.Context;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
-import com.hubspot.jinjava.lib.tag.DoTag;
+import com.hubspot.jinjava.lib.tag.AutoEscapeTag;
 import com.hubspot.jinjava.lib.tag.PrintTag;
 import com.hubspot.jinjava.lib.tag.Tag;
 import java.util.Optional;
@@ -18,7 +18,6 @@ public class EagerGenericTagTest {
   private Jinjava jinjava;
   private Context context;
   private JinjavaInterpreter interpreter;
-  private EagerTagFactory eagerTagFactory;
 
   @Before
   public void setup() {
@@ -35,7 +34,6 @@ public class EagerGenericTagTest {
       );
     context = interpreter.getContext();
     context.put("deferred", DeferredValue.instance());
-    eagerTagFactory = new EagerTagFactory();
     JinjavaInterpreter.pushCurrent(interpreter);
   }
 
@@ -45,7 +43,7 @@ public class EagerGenericTagTest {
   }
 
   private EagerTagDecorator<? extends Tag> setupClass(Class<? extends Tag> clazz) {
-    Optional<? extends EagerTagDecorator<? extends Tag>> maybeTag = eagerTagFactory.getEagerTagDecorator(
+    Optional<? extends EagerTagDecorator<? extends Tag>> maybeTag = EagerTagFactory.getEagerTagDecorator(
       clazz
     );
     maybeTag.ifPresent(eagerTagDecorator -> context.registerTag(eagerTagDecorator));

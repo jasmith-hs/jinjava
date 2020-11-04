@@ -42,7 +42,10 @@ public class EagerPrintTag extends EagerStateChangingTag<PrintTag> {
       // Possible macro/set tag in front of this one. Includes result
       return (
         prefixToPreserveState.toString() +
-        WhitespaceUtils.unquote(resolvedExpression.getResult())
+        wrapInRawIfNeeded(
+          WhitespaceUtils.unquote(resolvedExpression.getResult()),
+          interpreter
+        )
       );
     }
     prefixToPreserveState.append(
@@ -52,6 +55,9 @@ public class EagerPrintTag extends EagerStateChangingTag<PrintTag> {
       .getContext()
       .handleEagerToken(new EagerToken(tagToken, chunkResolver.getDeferredWords()));
     // Possible set tag in front of this one.
-    return prefixToPreserveState.toString() + joiner.toString();
+    return wrapInAutoEscapeIfNeeded(
+      prefixToPreserveState.toString() + joiner.toString(),
+      interpreter
+    );
   }
 }
