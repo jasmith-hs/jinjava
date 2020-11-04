@@ -419,7 +419,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
     return output;
   }
 
-  private static String wrapInTag(
+  public static String wrapInTag(
     String s,
     String tagNameToWrap,
     JinjavaInterpreter interpreter

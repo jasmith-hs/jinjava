@@ -248,7 +248,7 @@ public class EagerTest {
   public void itPreservesNestedExpressions() {
     localContext.put("nested", "some {{ deferred }} value");
     String output = interpreter.render("Test {{nested}}");
-    assertThat(output).isEqualTo("Test some {{ deferred }} value");
+    assertThat(output).isEqualTo("Test {{ 'some {{ deferred }} value' }}");
     assertThat(interpreter.getErrors()).isEmpty();
   }
 

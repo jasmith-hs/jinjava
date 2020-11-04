@@ -19,10 +19,12 @@ import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.executeInChild
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.getNewlyDeferredFunctionImages;
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.wrapInAutoEscapeIfNeeded;
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.wrapInRawIfNeeded;
+import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.wrapInTag;
 
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.lib.filter.EscapeFilter;
+import com.hubspot.jinjava.lib.tag.RawTag;
 import com.hubspot.jinjava.lib.tag.eager.EagerStringResult;
 import com.hubspot.jinjava.lib.tag.eager.EagerToken;
 import com.hubspot.jinjava.objects.SafeString;
@@ -110,7 +112,7 @@ public class ExpressionNode extends Node {
     if (chunkResolver.getDeferredWords().isEmpty()) {
       // Possible macro/set tag in front of this one. Includes result
       return new EagerStringResult(
-        wrapInRawIfNeeded(
+        wrapInRawOrExpressionIfNeeded(
           WhitespaceUtils.unquote(resolvedExpression.getResult()),
           interpreter
         ),
@@ -128,9 +130,42 @@ public class ExpressionNode extends Node {
       "",
       wrapInAutoEscapeIfNeeded(
         prefixToPreserveState.toString() +
-        String.format("{{ %s }}", resolvedExpression.getResult()),
+        wrapInExpression(resolvedExpression.getResult(), interpreter),
         interpreter
       )
+    );
+  }
+
+  private static String wrapInRawOrExpressionIfNeeded(
+    String output,
+    JinjavaInterpreter interpreter
+  ) {
+    if (
+      output.contains(
+        interpreter.getConfig().getTokenScannerSymbols().getExpressionStart()
+      ) ||
+      output.contains(
+        interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag()
+      )
+    ) {
+      if (interpreter.getConfig().isNestedInterpretationEnabled()) {
+        // Re-quote
+        return wrapInAutoEscapeIfNeeded(
+          wrapInExpression(String.format("'%s'", output), interpreter),
+          interpreter
+        );
+      }
+      return wrapInTag(output, RawTag.TAG_NAME, interpreter);
+    }
+    return output;
+  }
+
+  private static String wrapInExpression(String output, JinjavaInterpreter interpreter) {
+    return String.format(
+      "%s %s %s",
+      interpreter.getConfig().getTokenScannerSymbols().getExpressionStart(),
+      output,
+      interpreter.getConfig().getTokenScannerSymbols().getExpressionEnd()
     );
   }
 
