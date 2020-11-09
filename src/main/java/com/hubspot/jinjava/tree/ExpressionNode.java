@@ -111,14 +111,26 @@ public class ExpressionNode extends Node {
         : ""
     );
     if (chunkResolver.getDeferredWords().isEmpty()) {
-      // Possible macro/set tag in front of this one. Includes result
-      return new EagerStringResult(
-        wrapInRawOrExpressionIfNeeded(
-          WhitespaceUtils.unquote(resolvedExpression.getResult()),
-          interpreter
-        ),
-        prefixToPreserveState.toString()
-      );
+      String result = WhitespaceUtils.unquote(resolvedExpression.getResult());
+      if (interpreter.getConfig().isNestedInterpretationEnabled()) {
+        if (
+          !StringUtils.equals(result, master.getImage()) &&
+          (
+            StringUtils.contains(result, getSymbols().getExpressionStart()) ||
+            StringUtils.contains(result, getSymbols().getExpressionStartWithTag())
+          )
+        ) {
+          try {
+            result = interpreter.renderFlat(result);
+          } catch (Exception e) {
+            Logging.ENGINE_LOG.warn("Error rendering variable node result", e);
+          }
+        }
+      } else {
+        // Possible macro/set tag in front of this one. Includes result
+        result = wrapInRawOrExpressionIfNeeded(result, interpreter);
+      }
+      return new EagerStringResult(result, prefixToPreserveState.toString());
     }
     prefixToPreserveState.append(
       getNewlyDeferredFunctionImages(chunkResolver.getDeferredWords(), interpreter)
@@ -149,20 +161,16 @@ public class ExpressionNode extends Node {
     JinjavaInterpreter interpreter
   ) {
     if (
-      output.contains(
-        interpreter.getConfig().getTokenScannerSymbols().getExpressionStart()
-      ) ||
-      output.contains(
-        interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag()
+      interpreter.getConfig().isPreserveForFinalPass() &&
+      (
+        output.contains(
+          interpreter.getConfig().getTokenScannerSymbols().getExpressionStart()
+        ) ||
+        output.contains(
+          interpreter.getConfig().getTokenScannerSymbols().getExpressionStartWithTag()
+        )
       )
     ) {
-      if (interpreter.getConfig().isNestedInterpretationEnabled()) {
-        // Re-quote
-        return wrapInAutoEscapeIfNeeded(
-          wrapInExpression(String.format("'%s'", output), interpreter),
-          interpreter
-        );
-      }
       return wrapInTag(output, RawTag.TAG_NAME, interpreter);
     }
     return output;

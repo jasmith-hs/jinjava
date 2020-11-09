@@ -2,7 +2,6 @@ package com.hubspot.jinjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -32,6 +31,7 @@ import org.junit.Test;
 public class EagerTest {
   private JinjavaInterpreter interpreter;
   private final Jinjava jinjava = new Jinjava();
+  private ExpectedTemplateInterpreter expectedTemplateInterpreter;
   Context globalContext = new Context();
   Context localContext; // ref to context created with global as parent
 
@@ -65,6 +65,7 @@ public class EagerTest {
       .withRandomNumberGeneratorStrategy(RandomNumberGeneratorStrategy.DEFERRED)
       .withPreserveForFinalPass(true)
       .withEagerExecutionEnabled(true)
+      .withNestedInterpretationEnabled(true)
       .build();
     JinjavaInterpreter parentInterpreter = new JinjavaInterpreter(
       jinjava,
@@ -72,6 +73,8 @@ public class EagerTest {
       config
     );
     interpreter = new JinjavaInterpreter(parentInterpreter);
+    expectedTemplateInterpreter =
+      new ExpectedTemplateInterpreter(jinjava, interpreter, "eager");
     localContext = interpreter.getContext();
 
     localContext
@@ -90,8 +93,11 @@ public class EagerTest {
 
   @After
   public void teardown() {
-    assertThat(interpreter.getErrors()).isEmpty();
-    JinjavaInterpreter.popCurrent();
+    try {
+      assertThat(interpreter.getErrors()).isEmpty();
+    } finally {
+      JinjavaInterpreter.popCurrent();
+    }
   }
 
   @Test
@@ -243,7 +249,7 @@ public class EagerTest {
   public void itPreservesNestedExpressions() {
     localContext.put("nested", "some {{ deferred }} value");
     String output = interpreter.render("Test {{nested}}");
-    assertThat(output).isEqualTo("Test {{ 'some {{ deferred }} value' }}");
+    assertThat(output).isEqualTo("Test some {{ deferred }} value");
     assertThat(interpreter.getErrors()).isEmpty();
   }
 
@@ -283,7 +289,7 @@ public class EagerTest {
     localContext.put("padding", 0);
     localContext.put("added_padding", 10);
     String deferredOutput = interpreter.render(
-      getDeferredFixtureTemplate("deferred-macro.jinja")
+      expectedTemplateInterpreter.getDeferredFixtureTemplate("deferred-macro.jinja")
     );
     Object padding = localContext.get("padding");
     assertThat(padding).isInstanceOf(DeferredValue.class);
@@ -302,7 +308,9 @@ public class EagerTest {
 
   @Test
   public void itDefersAllVariablesUsedInDeferredNode() {
-    String template = getDeferredFixtureTemplate("vars-in-deferred-node.jinja");
+    String template = expectedTemplateInterpreter.getDeferredFixtureTemplate(
+      "vars-in-deferred-node.jinja"
+    );
     localContext.put("deferredValue", DeferredValue.instance("resolved"));
     String output = interpreter.render(template);
     Object varInScope = localContext.get("varUsedInForScope");
@@ -352,7 +360,9 @@ public class EagerTest {
 
   @Test
   public void itDoesNotPutDeferredVariablesOnGlobalContext() {
-    String template = getDeferredFixtureTemplate("set-within-lower-scope.jinja");
+    String template = expectedTemplateInterpreter.getDeferredFixtureTemplate(
+      "set-within-lower-scope.jinja"
+    );
     localContext.put("deferredValue", DeferredValue.instance("resolved"));
     interpreter.render(template);
     assertThat(globalContext).isEmpty();
@@ -360,7 +370,9 @@ public class EagerTest {
 
   @Test
   public void itPutsDeferredVariablesOnParentScopes() {
-    String template = getDeferredFixtureTemplate("set-within-lower-scope.jinja");
+    String template = expectedTemplateInterpreter.getDeferredFixtureTemplate(
+      "set-within-lower-scope.jinja"
+    );
     localContext.put("deferredValue", DeferredValue.instance("resolved"));
     String output = interpreter.render(template);
     HashMap<String, Object> deferredContext = DeferredValueUtils.getDeferredContextWithOriginalValues(
@@ -373,7 +385,9 @@ public class EagerTest {
 
   @Test
   public void puttingDeferredVariablesOnParentScopesDoesNotBreakSetTag() {
-    String template = getDeferredFixtureTemplate("set-within-lower-scope-twice.jinja");
+    String template = expectedTemplateInterpreter.getDeferredFixtureTemplate(
+      "set-within-lower-scope-twice.jinja"
+    );
 
     localContext.put("deferredValue", DeferredValue.instance("resolved"));
     String output = interpreter.render(template);
@@ -389,7 +403,9 @@ public class EagerTest {
 
   @Test
   public void itMarksVariablesSetInDeferredBlockAsDeferred() {
-    String template = getDeferredFixtureTemplate("set-in-deferred.jinja");
+    String template = expectedTemplateInterpreter.getDeferredFixtureTemplate(
+      "set-in-deferred.jinja"
+    );
 
     localContext.put("deferredValue", DeferredValue.instance("resolved"));
     String output = interpreter.render(template);
@@ -405,7 +421,9 @@ public class EagerTest {
 
   @Test
   public void itMarksVariablesUsedAsMapKeysAsDeferred() {
-    String template = getDeferredFixtureTemplate("deferred-map-access.jinja");
+    String template = expectedTemplateInterpreter.getDeferredFixtureTemplate(
+      "deferred-map-access.jinja"
+    );
 
     localContext.put("deferredValue", DeferredValue.instance("resolved"));
     localContext.put("deferredValue2", DeferredValue.instance("key"));
@@ -427,12 +445,12 @@ public class EagerTest {
   @Test
   public void itEagerlyDefersSet() {
     localContext.put("bar", true);
-    assertExpectedOutput("eagerly-defers-set");
+    expectedTemplateInterpreter.assertExpectedOutput("eagerly-defers-set");
   }
 
   @Test
   public void itEvaluatesNonEagerSet() {
-    assertExpectedOutput("evaluates-non-eager-set");
+    expectedTemplateInterpreter.assertExpectedOutput("evaluates-non-eager-set");
     assertThat(
         localContext
           .getEagerTokens()
@@ -453,50 +471,64 @@ public class EagerTest {
 
   @Test
   public void itDefersOnImmutableMode() {
-    assertExpectedOutput("defers-on-immutable-mode");
+    expectedTemplateInterpreter.assertExpectedOutput("defers-on-immutable-mode");
   }
 
   @Test
   public void itDoesntAffectParentFromEagerIf() {
-    assertExpectedOutput("doesnt-affect-parent-from-eager-if");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "doesnt-affect-parent-from-eager-if"
+    );
   }
 
   @Test
   public void itDefersEagerChildScopedVars() {
-    assertExpectedOutput("defers-eager-child-scoped-vars");
+    expectedTemplateInterpreter.assertExpectedOutput("defers-eager-child-scoped-vars");
   }
 
   @Test
   public void itSetsMultipleVarsDeferredInChild() {
-    assertExpectedOutput("sets-multiple-vars-deferred-in-child");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "sets-multiple-vars-deferred-in-child"
+    );
   }
 
   @Test
   public void itSetsMultipleVarsDeferredInChildSecondPass() {
     localContext.put("deferred", true);
-    assertExpectedOutput("sets-multiple-vars-deferred-in-child.expected");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "sets-multiple-vars-deferred-in-child.expected"
+    );
   }
 
   @Test
   public void itDoesntDoubleAppendInDeferredTag() {
-    assertExpectedOutput("doesnt-double-append-in-deferred-tag");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "doesnt-double-append-in-deferred-tag"
+    );
   }
 
   @Test
   public void itPrependsSetIfStateChanges() {
-    assertExpectedOutput("prepends-set-if-state-changes");
+    expectedTemplateInterpreter.assertExpectedOutput("prepends-set-if-state-changes");
   }
 
   @Test
   public void itHandlesLoopVarAgainstDeferredInLoop() {
-    assertExpectedOutput("handles-loop-var-against-deferred-in-loop");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "handles-loop-var-against-deferred-in-loop"
+    );
   }
 
   @Test
   public void itHandlesLoopVarAgainstDeferredInLoopSecondPass() {
     localContext.put("deferred", "resolved");
-    assertExpectedOutput("handles-loop-var-against-deferred-in-loop.expected");
-    assertExpectedNonEagerOutput("handles-loop-var-against-deferred-in-loop.expected");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "handles-loop-var-against-deferred-in-loop.expected"
+    );
+    expectedTemplateInterpreter.assertExpectedNonEagerOutput(
+      "handles-loop-var-against-deferred-in-loop.expected"
+    );
   }
 
   @Test
@@ -504,7 +536,9 @@ public class EagerTest {
     localContext.put("my_list", new PyList(new ArrayList<>()));
     localContext.put("first", 10);
     localContext.put("deferred2", DeferredValue.instance());
-    String deferredOutput = assertExpectedOutput("defers-macro-for-do-and-print");
+    String deferredOutput = expectedTemplateInterpreter.assertExpectedOutput(
+      "defers-macro-for-do-and-print"
+    );
     Object myList = localContext.get("my_list");
     assertThat(myList).isInstanceOf(DeferredValue.class);
     assertThat(((DeferredValue) myList).getOriginalValue())
@@ -528,152 +562,209 @@ public class EagerTest {
   @Test
   public void itDefersMacroInFor() {
     localContext.put("my_list", new PyList(new ArrayList<>()));
-    assertExpectedOutput("defers-macro-in-for");
+    expectedTemplateInterpreter.assertExpectedOutput("defers-macro-in-for");
   }
 
   @Test
   public void itDefersMacroInIf() {
     localContext.put("my_list", new PyList(new ArrayList<>()));
-    assertExpectedOutput("defers-macro-in-if");
+    expectedTemplateInterpreter.assertExpectedOutput("defers-macro-in-if");
   }
 
   @Test
   public void itPutsDeferredImportedMacroInOutput() {
-    assertExpectedOutput("puts-deferred-imported-macro-in-output");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "puts-deferred-imported-macro-in-output"
+    );
   }
 
   @Test
   public void itPutsDeferredImportedMacroInOutputSecondPass() {
     localContext.put("deferred", 1);
-    assertExpectedOutput("puts-deferred-imported-macro-in-output.expected");
-    assertExpectedNonEagerOutput("puts-deferred-imported-macro-in-output.expected");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "puts-deferred-imported-macro-in-output.expected"
+    );
+    expectedTemplateInterpreter.assertExpectedNonEagerOutput(
+      "puts-deferred-imported-macro-in-output.expected"
+    );
   }
 
   @Test
   public void itPutsDeferredFromedMacroInOutput() {
-    assertExpectedOutput("puts-deferred-fromed-macro-in-output");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "puts-deferred-fromed-macro-in-output"
+    );
   }
 
   @Test
   public void itEagerlyDefersMacro() {
     localContext.put("foo", "I am foo");
     localContext.put("bar", "I am bar");
-    assertExpectedOutput("eagerly-defers-macro");
+    expectedTemplateInterpreter.assertExpectedOutput("eagerly-defers-macro");
   }
 
   @Test
   public void itEagerlyDefersMacroSecondPass() {
     localContext.put("deferred", true);
-    assertExpectedOutput("eagerly-defers-macro.expected");
-    assertExpectedNonEagerOutput("eagerly-defers-macro.expected");
+    expectedTemplateInterpreter.assertExpectedOutput("eagerly-defers-macro.expected");
+    expectedTemplateInterpreter.assertExpectedNonEagerOutput(
+      "eagerly-defers-macro.expected"
+    );
   }
 
   @Test
   public void itLoadsImportedMacroSyntax() {
-    assertExpectedOutput("loads-imported-macro-syntax");
+    expectedTemplateInterpreter.assertExpectedOutput("loads-imported-macro-syntax");
   }
 
   @Test
   public void itDefersCaller() {
-    assertExpectedOutput("defers-caller");
+    expectedTemplateInterpreter.assertExpectedOutput("defers-caller");
   }
 
   @Test
   public void itDefersCallerSecondPass() {
     localContext.put("deferred", "foo");
-    assertExpectedOutput("defers-caller.expected");
-    assertExpectedNonEagerOutput("defers-caller.expected");
+    expectedTemplateInterpreter.assertExpectedOutput("defers-caller.expected");
+    expectedTemplateInterpreter.assertExpectedNonEagerOutput("defers-caller.expected");
   }
 
   @Test
   public void itDefersMacroInExpression() {
-    assertExpectedOutput("defers-macro-in-expression");
+    expectedTemplateInterpreter.assertExpectedOutput("defers-macro-in-expression");
   }
 
   @Test
   public void itDefersMacroInExpressionSecondPass() {
     localContext.put("deferred", 5);
-    assertExpectedOutput("defers-macro-in-expression.expected");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "defers-macro-in-expression.expected"
+    );
     localContext.put("deferred", 5);
-    assertExpectedNonEagerOutput("defers-macro-in-expression.expected");
+    expectedTemplateInterpreter.assertExpectedNonEagerOutput(
+      "defers-macro-in-expression.expected"
+    );
   }
 
   @Test
   public void itHandlesDeferredInIfchanged() {
-    assertExpectedOutput("handles-deferred-in-ifchanged");
+    expectedTemplateInterpreter.assertExpectedOutput("handles-deferred-in-ifchanged");
   }
 
   @Test
   public void itDefersIfchanged() {
-    assertExpectedOutput("defers-ifchanged");
+    expectedTemplateInterpreter.assertExpectedOutput("defers-ifchanged");
   }
 
   @Test
   public void itHandlesCycleInDeferredFor() {
-    assertExpectedOutput("handles-cycle-in-deferred-for");
+    expectedTemplateInterpreter.assertExpectedOutput("handles-cycle-in-deferred-for");
   }
 
   @Test
   public void itHandlesCycleInDeferredForSecondPass() {
     localContext.put("deferred", new String[] { "foo", "bar", "foobar", "baz" });
-    assertExpectedOutput("handles-cycle-in-deferred-for.expected");
-    assertExpectedNonEagerOutput("handles-cycle-in-deferred-for.expected");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "handles-cycle-in-deferred-for.expected"
+    );
+    expectedTemplateInterpreter.assertExpectedNonEagerOutput(
+      "handles-cycle-in-deferred-for.expected"
+    );
   }
 
   @Test
   public void itHandlesDeferredInCycle() {
-    assertExpectedOutput("handles-deferred-in-cycle");
+    expectedTemplateInterpreter.assertExpectedOutput("handles-deferred-in-cycle");
   }
 
   @Test
   public void itHandlesDeferredCycleAs() {
-    assertExpectedOutput("handles-deferred-cycle-as");
+    expectedTemplateInterpreter.assertExpectedOutput("handles-deferred-cycle-as");
   }
 
   @Test
   public void itHandlesDeferredCycleAsSecondPass() {
     localContext.put("deferred", "hello");
-    assertExpectedOutput("handles-deferred-cycle-as.expected");
-    assertExpectedNonEagerOutput("handles-deferred-cycle-as.expected");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "handles-deferred-cycle-as.expected"
+    );
+    expectedTemplateInterpreter.assertExpectedNonEagerOutput(
+      "handles-deferred-cycle-as.expected"
+    );
   }
 
   @Test
   public void itHandlesNonDeferringCycles() {
-    assertExpectedNonEagerOutput("handles-non-deferring-cycles");
-    assertExpectedOutput("handles-non-deferring-cycles");
+    expectedTemplateInterpreter.assertExpectedNonEagerOutput(
+      "handles-non-deferring-cycles"
+    );
+    expectedTemplateInterpreter.assertExpectedOutput("handles-non-deferring-cycles");
   }
 
   @Test
   public void itHandlesAutoEscape() {
     localContext.put("myvar", "foo < bar");
-    assertExpectedOutput("handles-auto-escape");
+    expectedTemplateInterpreter.assertExpectedOutput("handles-auto-escape");
   }
 
   @Test
   public void itWrapsCertainOutputInRaw() {
-    assertExpectedOutput("wraps-certain-output-in-raw");
+    JinjavaConfig config = JinjavaConfig
+      .newBuilder()
+      .withRandomNumberGeneratorStrategy(RandomNumberGeneratorStrategy.DEFERRED)
+      .withPreserveForFinalPass(true)
+      .withEagerExecutionEnabled(true)
+      .withNestedInterpretationEnabled(false)
+      .build();
+    JinjavaInterpreter parentInterpreter = new JinjavaInterpreter(
+      jinjava,
+      globalContext,
+      config
+    );
+    JinjavaInterpreter noNestedInterpreter = new JinjavaInterpreter(parentInterpreter);
+    noNestedInterpreter
+      .getContext()
+      .getAllTags()
+      .stream()
+      .map(tag -> EagerTagFactory.getEagerTagDecorator(tag.getClass()))
+      .filter(Optional::isPresent)
+      .forEach(
+        maybeEagerTag -> noNestedInterpreter.getContext().registerTag(maybeEagerTag.get())
+      );
+
+    JinjavaInterpreter.pushCurrent(noNestedInterpreter);
+    try {
+      new ExpectedTemplateInterpreter(jinjava, noNestedInterpreter, "eager")
+      .assertExpectedOutput("wraps-certain-output-in-raw");
+    } finally {
+      JinjavaInterpreter.popCurrent();
+    }
   }
 
   @Test
   public void itHandlesDeferredImportVars() {
-    assertExpectedOutput("handles-deferred-import-vars");
+    expectedTemplateInterpreter.assertExpectedOutput("handles-deferred-import-vars");
   }
 
   @Test
   public void itHandlesDeferredImportVarsSecondPass() {
     localContext.put("deferred", 1);
-    assertExpectedOutput("handles-deferred-import-vars.expected");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "handles-deferred-import-vars.expected"
+    );
   }
 
   @Test
   public void itHandlesDeferredFromImportAs() {
-    assertExpectedOutput("handles-deferred-from-import-as");
+    expectedTemplateInterpreter.assertExpectedOutput("handles-deferred-from-import-as");
   }
 
   @Test
   public void itHandlesDeferredFromImportAsSecondPass() {
     localContext.put("deferred", 1);
-    assertExpectedOutput("handles-deferred-from-import-as.expected");
+    expectedTemplateInterpreter.assertExpectedOutput(
+      "handles-deferred-from-import-as.expected"
+    );
   }
 
   @Test
@@ -684,64 +775,4 @@ public class EagerTest {
 
   @Test
   public void itEagerlyDefersImport() {}
-
-  private String assertExpectedOutput(String name) {
-    String template = getFixtureTemplate(name);
-    String output = JinjavaInterpreter.getCurrent().render(template);
-    assertThat(output.trim()).isEqualTo(expected(name).trim());
-    return output;
-  }
-
-  private String assertExpectedNonEagerOutput(String name) {
-    JinjavaInterpreter preserveInterpreter = new JinjavaInterpreter(
-      jinjava,
-      jinjava.getGlobalContextCopy(),
-      JinjavaConfig
-        .newBuilder()
-        .withPreserveForFinalPass(false)
-        .withEagerExecutionEnabled(false)
-        .build()
-    );
-    try {
-      JinjavaInterpreter.pushCurrent(preserveInterpreter);
-
-      preserveInterpreter.getContext().putAll(interpreter.getContext());
-      return assertExpectedOutput(name);
-    } finally {
-      JinjavaInterpreter.popCurrent();
-    }
-  }
-
-  public String getFixtureTemplate(String name) {
-    try {
-      return Resources.toString(
-        Resources.getResource(String.format("%s/%s.jinja", "eager", name)),
-        StandardCharsets.UTF_8
-      );
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public String expected(String name) {
-    try {
-      return Resources.toString(
-        Resources.getResource(String.format("%s/%s.expected.jinja", "eager", name)),
-        StandardCharsets.UTF_8
-      );
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private String getDeferredFixtureTemplate(String templateLocation) {
-    try {
-      return Resources.toString(
-        Resources.getResource("deferred/" + templateLocation),
-        Charsets.UTF_8
-      );
-    } catch (IOException e) {
-      return null;
-    }
-  }
 }

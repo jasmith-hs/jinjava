@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
+import com.hubspot.jinjava.BaseInterpretingTest;
 import com.hubspot.jinjava.BaseJinjavaTest;
 import com.hubspot.jinjava.interpret.FatalTemplateErrorsException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
@@ -24,7 +25,7 @@ import org.jsoup.nodes.Document;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ExtendsTagTest extends BaseJinjavaTest {
+public class ExtendsTagTest extends BaseInterpretingTest {
   private ExtendsTagTestResourceLocator locator;
 
   @Before
