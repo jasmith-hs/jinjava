@@ -7,10 +7,12 @@ import com.hubspot.jinjava.JinjavaConfig;
 import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.lib.tag.IncludeTagTest;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class EagerIncludeTagTest extends IncludeTagTest {
@@ -64,5 +66,19 @@ public class EagerIncludeTagTest extends IncludeTagTest {
           .collect(Collectors.toSet())
       )
       .containsExactlyInAnyOrder("foo");
+  }
+
+  @Override
+  @Test
+  @Ignore
+  public void itSetsErrorLineNumbersCorrectly() throws IOException {
+    super.itSetsErrorLineNumbersCorrectly();
+  }
+
+  @Override
+  @Test
+  @Ignore
+  public void itSetsErrorLineNumbersCorrectlyTwoLevelsDeep() throws IOException {
+    super.itSetsErrorLineNumbersCorrectlyTwoLevelsDeep();
   }
 }

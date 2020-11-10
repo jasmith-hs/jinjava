@@ -18,7 +18,6 @@ package com.hubspot.jinjava.tree;
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.executeInChildContext;
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.getNewlyDeferredFunctionImages;
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.wrapInAutoEscapeIfNeeded;
-import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.wrapInRawIfNeeded;
 import static com.hubspot.jinjava.lib.tag.eager.EagerTagDecorator.wrapInTag;
 
 import com.hubspot.jinjava.interpret.DeferredValueException;
@@ -112,23 +111,23 @@ public class ExpressionNode extends Node {
     );
     if (chunkResolver.getDeferredWords().isEmpty()) {
       String result = WhitespaceUtils.unquote(resolvedExpression.getResult());
-      if (interpreter.getConfig().isNestedInterpretationEnabled()) {
-        if (
-          !StringUtils.equals(result, master.getImage()) &&
-          (
-            StringUtils.contains(result, getSymbols().getExpressionStart()) ||
-            StringUtils.contains(result, getSymbols().getExpressionStartWithTag())
-          )
-        ) {
+      if (
+        !StringUtils.equals(result, master.getImage()) &&
+        (
+          StringUtils.contains(result, getSymbols().getExpressionStart()) ||
+          StringUtils.contains(result, getSymbols().getExpressionStartWithTag())
+        )
+      ) {
+        if (interpreter.getConfig().isNestedInterpretationEnabled()) {
           try {
             result = interpreter.renderFlat(result);
           } catch (Exception e) {
             Logging.ENGINE_LOG.warn("Error rendering variable node result", e);
           }
+        } else {
+          // Possible macro/set tag in front of this one. Includes result
+          result = wrapInRawOrExpressionIfNeeded(result, interpreter);
         }
-      } else {
-        // Possible macro/set tag in front of this one. Includes result
-        result = wrapInRawOrExpressionIfNeeded(result, interpreter);
       }
       return new EagerStringResult(result, prefixToPreserveState.toString());
     }
