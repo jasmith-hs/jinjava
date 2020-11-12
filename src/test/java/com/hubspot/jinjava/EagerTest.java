@@ -768,6 +768,11 @@ public class EagerTest {
   }
 
   @Test
+  public void itPreservesValueSetInIf() {
+    expectedTemplateInterpreter.assertExpectedOutput("conserves-value-set-in-if");
+  }
+
+  @Test
   public void itEagerlyDefersFrom() {}
 
   @Test
