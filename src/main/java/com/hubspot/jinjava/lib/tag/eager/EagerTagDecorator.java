@@ -11,6 +11,7 @@ import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.DisabledException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter.InterpreterScopeClosable;
+import com.hubspot.jinjava.interpret.TemplateSyntaxException;
 import com.hubspot.jinjava.lib.fn.MacroFunction;
 import com.hubspot.jinjava.lib.fn.eager.EagerMacroFunction;
 import com.hubspot.jinjava.lib.tag.AutoEscapeTag;
@@ -52,7 +53,7 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
   public String interpret(TagNode tagNode, JinjavaInterpreter interpreter) {
     try {
       return tag.interpret(tagNode, interpreter);
-    } catch (DeferredValueException e) {
+    } catch (DeferredValueException | TemplateSyntaxException e) {
       if (interpreter.getConfig().isEagerExecutionEnabled()) {
         return wrapInAutoEscapeIfNeeded(
           eagerInterpret(tagNode, interpreter),
@@ -262,8 +263,8 @@ public abstract class EagerTagDecorator<T extends Tag> implements Tag {
       throw new DisabledException("set tag disabled");
     }
 
-    StringJoiner vars = new StringJoiner(", ");
-    StringJoiner values = new StringJoiner(", ");
+    StringJoiner vars = new StringJoiner(",");
+    StringJoiner values = new StringJoiner(",");
     deferredValuesToSet.forEach(
       (key, value) -> {
         // This ensures they are properly aligned to each other.

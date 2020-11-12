@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import com.hubspot.jinjava.doc.annotations.JinjavaDoc;
 import com.hubspot.jinjava.doc.annotations.JinjavaParam;
 import com.hubspot.jinjava.doc.annotations.JinjavaSnippet;
+import com.hubspot.jinjava.interpret.DeferredValue;
 import com.hubspot.jinjava.interpret.DeferredValueException;
 import com.hubspot.jinjava.interpret.JinjavaInterpreter;
 import com.hubspot.jinjava.interpret.TemplateSyntaxException;
@@ -128,12 +129,14 @@ public class MacroTag implements Tag {
 
     if (StringUtils.isNotEmpty(parentName)) {
       try {
-        Map<String, Object> macroOfParent = (Map<String, Object>) interpreter
-          .getContext()
-          .getOrDefault(parentName, new HashMap<>());
-        macroOfParent.put(macro.getName(), macro);
-        if (!interpreter.getContext().containsKey(parentName)) {
-          interpreter.getContext().put(parentName, macroOfParent);
+        if (!(interpreter.getContext().get(parentName) instanceof DeferredValue)) {
+          Map<String, Object> macroOfParent = (Map<String, Object>) interpreter
+            .getContext()
+            .getOrDefault(parentName, new HashMap<>());
+          macroOfParent.put(macro.getName(), macro);
+          if (!interpreter.getContext().containsKey(parentName)) {
+            interpreter.getContext().put(parentName, macroOfParent);
+          }
         }
       } catch (ClassCastException e) {
         throw new TemplateSyntaxException(
