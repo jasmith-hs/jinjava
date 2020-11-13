@@ -15,6 +15,7 @@ import com.hubspot.jinjava.loader.RelativePathResolver;
 import com.hubspot.jinjava.loader.ResourceLocator;
 import com.hubspot.jinjava.objects.collections.PyList;
 import com.hubspot.jinjava.random.RandomNumberGeneratorStrategy;
+import com.hubspot.jinjava.tree.eager.EagerExpressionNode;
 import com.hubspot.jinjava.util.DeferredValueUtils;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -83,6 +84,7 @@ public class EagerTest {
       .map(tag -> EagerTagFactory.getEagerTagDecorator(tag.getClass()))
       .filter(Optional::isPresent)
       .forEach(maybeEagerTag -> localContext.registerTag(maybeEagerTag.get()));
+    localContext.setExpressionNodeClass(EagerExpressionNode.class);
 
     localContext.put("deferred", DeferredValue.instance());
     localContext.put("resolved", "resolvedValue");
@@ -731,6 +733,7 @@ public class EagerTest {
       .forEach(
         maybeEagerTag -> noNestedInterpreter.getContext().registerTag(maybeEagerTag.get())
       );
+    noNestedInterpreter.getContext().setExpressionNodeClass(EagerExpressionNode.class);
 
     JinjavaInterpreter.pushCurrent(noNestedInterpreter);
     try {

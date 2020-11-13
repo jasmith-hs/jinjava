@@ -35,6 +35,7 @@ import com.hubspot.jinjava.tree.parse.TextToken;
 import com.hubspot.jinjava.tree.parse.Token;
 import com.hubspot.jinjava.tree.parse.TokenScanner;
 import com.hubspot.jinjava.tree.parse.TokenScannerSymbols;
+import java.lang.reflect.InvocationTargetException;
 import org.apache.commons.lang3.StringUtils;
 
 public class TreeParser {
@@ -166,9 +167,22 @@ public class TreeParser {
   }
 
   private Node expression(ExpressionToken expressionToken) {
-    ExpressionNode n = new ExpressionNode(expressionToken);
+    ExpressionNode n = createExpressionNode(expressionToken);
     n.setParent(parent);
     return n;
+  }
+
+  private ExpressionNode createExpressionNode(ExpressionToken expressionToken) {
+    try {
+      return interpreter
+        .getContext()
+        .getExpressionNodeClass()
+        .getDeclaredConstructor(ExpressionToken.class)
+        .newInstance(expressionToken);
+    } catch (ReflectiveOperationException e) {
+      interpreter.addError(TemplateError.fromException(e));
+      return new ExpressionNode(expressionToken);
+    }
   }
 
   private Node tag(TagToken tagToken) {
